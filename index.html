@@ -824,5 +824,79 @@ setInterval(chkN,30*60000);
 });
 
 </script>
+
+<!-- Firebase Real-Time Sync for UN Legal Group App -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+  import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBlfGCi5LjgbEwebsbKnJqcnSGflMtsp9U",
+    authDomain: "un-legal-group.firebaseapp.com",
+    projectId: "un-legal-group",
+    storageBucket: "un-legal-group.firebasestorage.app",
+    messagingSenderId: "253785902105",
+    appId: "1:253785902105:web:bee360384d57f38d9d6e88"
+  };
+
+  const fbApp = initializeApp(firebaseConfig);
+  const db = getFirestore(fbApp);
+  const DATE_DOC = doc(db, "appData", "hearingDates");
+
+  async function saveDatesToCloud(update) {
+    try { await setDoc(DATE_DOC, update, { merge: true }); }
+    catch(e) { console.warn("Firebase save error:", e); }
+  }
+
+  async function loadDatesFromCloud() {
+    try {
+      const snap = await getDoc(DATE_DOC);
+      if (!snap.exists()) return;
+      const cloudDates = snap.data();
+      let local = {};
+      try { local = JSON.parse(localStorage.getItem("u4du") || "{}"); } catch(e) {}
+      const merged = Object.assign({}, local, cloudDates);
+      localStorage.setItem("u4du", JSON.stringify(merged));
+      if (window.cases) {
+        for (const [sn, nd] of Object.entries(cloudDates)) {
+          const c = window.cases.find(x => String(x.sn) === String(sn));
+          if (c) c.nd = nd;
+        }
+      }
+      if (typeof renderDB === "function") try { renderDB(); } catch(e) {}
+      if (typeof renderH === "function") try { renderH(); } catch(e) {}
+    } catch(e) { console.warn("Firebase load error:", e); }
+  }
+
+  window.addEventListener("load", function() {
+    loadDatesFromCloud();
+
+    onSnapshot(DATE_DOC, (snap) => {
+      if (!snap.exists()) return;
+      const cloudDates = snap.data();
+      let changed = false;
+      if (window.cases) {
+        for (const [sn, nd] of Object.entries(cloudDates)) {
+          const c = window.cases.find(x => String(x.sn) === String(sn));
+          if (c && c.nd !== nd) { c.nd = nd; changed = true; }
+        }
+      }
+      if (changed) {
+        if (typeof renderDB === "function") try { renderDB(); } catch(e) {}
+        if (typeof renderH === "function") try { renderH(); } catch(e) {}
+      }
+    });
+
+    if (typeof window.chgHDate === "function") {
+      const _orig = window.chgHDate;
+      window.chgHDate = function(sn, newDate) {
+        _orig.call(this, sn, newDate);
+        const update = {};
+        update[String(sn)] = newDate;
+        saveDatesToCloud(update);
+      };
+    }
+  });
+</script>
 </body>
 </html>
