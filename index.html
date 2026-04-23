@@ -109,6 +109,18 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 </style>
 </head>
 <body>
+<div id="ulg-lock" style="position:fixed;top:0;left:0;width:100%;height:100%;background:linear-gradient(160deg,#1a2744,#0f1929);display:flex;align-items:center;justify-content:center;z-index:99999;flex-direction:column;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+  <div style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);border-radius:18px;padding:40px 36px;width:90%;max-width:360px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.5);">
+    <div style="width:72px;height:72px;background:linear-gradient(180deg,#c9a227,#a07a10);border-radius:50%;margin:0 auto 18px;display:flex;align-items:center;justify-content:center;font-size:32px;">⚖️</div>
+    <div style="color:#c9a227;font-size:22px;font-weight:700;letter-spacing:1px;margin-bottom:4px;">UN Legal Group</div>
+    <div style="color:rgba(255,255,255,.5);font-size:13px;margin-bottom:28px;">Case Management System</div>
+    <input id="ulg-pwd" type="password" placeholder="Enter Password" style="width:100%;box-sizing:border-box;padding:13px 16px;border-radius:10px;border:1.5px solid rgba(255,255,255,.2);background:rgba(255,255,255,.08);color:#fff;font-size:16px;outline:none;text-align:center;letter-spacing:3px;margin-bottom:12px;" />
+    <div id="ulg-err" style="color:#ff6b6b;font-size:13px;min-height:18px;margin-bottom:10px;"></div>
+    <button id="ulg-btn" style="width:100%;padding:13px;background:linear-gradient(180deg,#c9a227,#a07a10);border:none;border-radius:10px;color:#1a2744;font-size:16px;font-weight:700;cursor:pointer;letter-spacing:1px;">LOGIN</button>
+    <div style="color:rgba(255,255,255,.3);font-size:11px;margin-top:20px;">🔒 Authorised Access Only</div>
+  </div>
+</div>
+
 <div class="sb">
 <div class="logo">
 <div style="text-align:center;padding:8px 0">
@@ -897,6 +909,50 @@ setInterval(chkN,30*60000);
       };
     }
   });
+</script>
+
+<script id="ulg-auth">
+(function(){
+  var PASS = 'ULG@2026';
+  var KEY  = 'ulg_auth_ok';
+  var lock = document.getElementById('ulg-lock');
+  var app  = document.querySelector('.sb');
+
+  function unlock(){
+    if(lock) lock.style.display='none';
+    if(app)  app.style.display='';
+    sessionStorage.setItem(KEY,'1');
+  }
+
+  // Already authenticated this session?
+  if(sessionStorage.getItem(KEY)==='1'){ unlock(); return; }
+
+  // Hide app body until authenticated
+  if(app) app.style.display='none';
+  var mn = document.querySelector('.mn');
+  if(mn) mn.style.display='none';
+
+  function tryLogin(){
+    var val = document.getElementById('ulg-pwd').value;
+    if(val === PASS){
+      if(mn) mn.style.display='';
+      unlock();
+    } else {
+      var err = document.getElementById('ulg-err');
+      err.textContent = '❌ Wrong password. Please try again.';
+      document.getElementById('ulg-pwd').value='';
+      document.getElementById('ulg-pwd').focus();
+    }
+  }
+
+  document.getElementById('ulg-btn').addEventListener('click', tryLogin);
+  document.getElementById('ulg-pwd').addEventListener('keydown', function(e){
+    if(e.key==='Enter') tryLogin();
+    document.getElementById('ulg-err').textContent='';
+  });
+
+  document.getElementById('ulg-pwd').focus();
+})();
 </script>
 </body>
 </html>
