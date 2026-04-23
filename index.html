@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DOCTYPE html><button id="mob-ham" class="mob-ham" onclick="toggleSidebar()" style="display:none;background:none;border:none;color:var(--nv);font-size:22px;cursor:pointer;padding:0 10px 0 0;line-height:1;margin-right:4px;" aria-label="Menu">&#9776;</button>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -104,11 +104,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .dl-card h4{font-size:12px;color:var(--nv);margin-bottom:4px}
 .dl-card p{font-size:10px;color:var(--tx2);margin-bottom:8px}
 @media print{.sb,.tb,.btn,.tl,.ft,.fb,.wa,.bell,.np,.share-box,.pty-sel{display:none!important}.mn{margin-left:0!important}.pg{display:block!important}.ct{padding:0}}
-@media(max-width:768px){.sb{display:none}.mn{margin-left:0}.sts{grid-template-columns:repeat(2,1fr)}.cg{grid-template-columns:1fr}.clt{font-size:8px}.clt th,.clt td{padding:3px 5px}}
+@media(max-width:768px){.sb{display:flex!important;position:fixed;top:0;left:0;height:100%;width:260px;z-index:9000;transform:translateX(-100%);transition:transform .28s cubic-bezier(.4,0,.2,1)}.sb.mob-open{transform:translateX(0)}.mob-overlay{display:block!important}.mob-ham{display:flex!important}.mn{margin-left:0}.sts{grid-template-columns:repeat(2,1fr)}.cg{grid-template-columns:1fr}.clt{font-size:8px}.clt th,.clt td{padding:3px 5px}}
 
-</style>
+.mob-ham{display:none}.mob-overlay{display:none}</style>
 </head>
-<body>
+<body><div id="mob-overlay" class="mob-overlay" onclick="toggleSidebar()" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:8999;"></div>
 <div id="ulg-lock" style="position:fixed;top:0;left:0;width:100%;height:100%;background:linear-gradient(160deg,#1a2744,#0f1929);display:flex;align-items:center;justify-content:center;z-index:99999;flex-direction:column;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
   <div style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);border-radius:18px;padding:40px 36px;width:90%;max-width:360px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.5);">
     <div style="width:72px;height:72px;background:linear-gradient(180deg,#c9a227,#a07a10);border-radius:50%;margin:0 auto 18px;display:flex;align-items:center;justify-content:center;font-size:32px;">⚖️</div>
@@ -184,7 +184,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 </div>
 <div class="mn">
 <div class="tb">
-<h1 id="pt">Dashboard</h1>
+<button id="mob-ham" class="mob-ham" onclick="toggleSidebar()" style="display:none;background:none;border:none;color:var(--nv);font-size:24px;cursor:pointer;padding:0 8px 0 0;line-height:1;" aria-label="Menu">&#9776;</button><h1 id="pt">Dashboard</h1>
 <div style="display:flex;align-items:center;gap:12px">
 <span style="font-size:10px;color:var(--tx2)" id="dd"></span>
 <span class="bell" onclick="togNP()">&#128276;<span class="bg" id="nb">0</span></span>
@@ -954,5 +954,29 @@ setInterval(chkN,30*60000);
   document.getElementById('ulg-pwd').focus();
 })();
 </script>
-</body>
+
+<script id="mob-nav">
+function toggleSidebar(){
+  var sb=document.querySelector('.sb');
+  var ov=document.getElementById('mob-overlay');
+  if(sb){sb.classList.toggle('mob-open');}
+  if(ov){ov.style.display=sb&&sb.classList.contains('mob-open')?'block':'none';}
+}
+// Close sidebar when a nav item is clicked on mobile
+document.addEventListener('DOMContentLoaded',function(){
+  var sb=document.querySelector('.sb');
+  if(sb){
+    sb.querySelectorAll('li,a,[onclick]').forEach(function(el){
+      el.addEventListener('click',function(){
+        if(window.innerWidth<=768){
+          var s=document.querySelector('.sb');
+          var o=document.getElementById('mob-overlay');
+          if(s){s.classList.remove('mob-open');}
+          if(o){o.style.display='none';}
+        }
+      });
+    });
+  }
+});
+</script></body>
 </html>
