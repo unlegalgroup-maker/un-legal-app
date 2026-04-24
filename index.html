@@ -413,7 +413,7 @@ h+='<input type="date" class="si" value="'+c.nd+'" style="font-size:11px;padding
 h+='<button onclick="disposeCase('+c.sn+')" style="margin-left:8px;padding:3px 10px;background:#e74c3c;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:11px">Disposed off case</button>';
 h+='</div></div>'});
 h+='</div>'});
-$("pg-hear").innerHTML=h||'<div style="text-align:center;padding:30px;color:var(--tx2)">No hearings</div>';
+$("pg-hear").innerHTML=tb+(h||'<div style="text-align:center;padding:30px;color:var(--tx2)">No hearings</div>');
 }
 function navCal(dir){
 var now=new Date();
