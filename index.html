@@ -399,7 +399,7 @@ dts.forEach(function(dk){
 var cl='';if(dk===ts)cl='td';else if(dk===tm)cl='tm';else if(dk>ts&&dk<=wkS)cl='wk';
 h+='<div class="hg"><div class="hgt">'+FD(dk)+' ('+grp[dk].length+' hearing'+(grp[dk].length>1?'s':'')+')</div>';
 grp[dk].forEach(function(c){
-h+='<div class="hi '+cl+'" style="position:relative"><b>'+c.sn+'. '+F(c.pn)+' vs '+F(c.op)+'</b><br>';
+h+='<div class="hi '+cl+'" style="position:relative"><b>'+F(c.pn)+' vs '+F(c.op)+'</b><br>';
 h+='Case: '+F(c.cn)+' | CNR: '+F(c.crn)+' | Judge: '+F(c.jn)+' | Court: '+F(c.cr)+'<br>';
 h+='Last: '+FD(c.ld)+' | Status: '+F(c.st);
 h+='<div style="margin-top:6px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">';
