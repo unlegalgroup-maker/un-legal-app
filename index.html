@@ -219,14 +219,13 @@ var upcoming=cases.filter(function(c){return isVD(c.nd)&&c.nd>=ts});
 var todayC=cases.filter(function(c){return c.nd===ts});
 var tmC=cases.filter(function(c){return c.nd===tm});
 var wkC=cases.filter(function(c){return isVD(c.nd)&&c.nd>tm&&c.nd<=wkS});
-var tc=0,rc=0;cases.forEach(function(c){tc+=(c.ta||0);rc+=(c.ra||0)});
+var tc=0,rc=0,dc=0;cases.forEach(function(c){tc+=(c.ta||0);rc+=(c.ra||0);if(c.st&&c.st.indexOf('Disposed')>-1)dc++});
 var h='<div class="sts">';
 h+='<div class="st"><div class="l">Total Cases</div><div class="v">'+cases.length+'</div></div>';
 h+='<div class="st" style="border-left-color:var(--gn)"><div class="l">Today</div><div class="v">'+todayC.length+'</div></div>';
 h+='<div class="st" style="border-left-color:var(--rd)"><div class="l">Tomorrow</div><div class="v">'+tmC.length+'</div></div>';
 h+='<div class="st" style="border-left-color:var(--or)"><div class="l">This Week</div><div class="v">'+wkC.length+'</div></div>';
-h+='<div class="st"><div class="l">Total Claims</div><div class="v">'+FM(tc)+'</div></div>';
-h+='<div class="st" style="border-left-color:var(--gn)"><div class="l">Recovered</div><div class="v">'+FM(rc)+'</div></div>';
+h+='<div class="st" style="border-left-color:#e74c3c"><div class="l">Total Disposed</div><div class="v">'+dc+'</div></div>';
 h+='</div>';
 if(todayC.length||tmC.length){
 window._waT="*UN LEGAL GROUP - HEARING ALERT*\n\n";
@@ -253,12 +252,12 @@ else tmC.forEach(function(c){h+='<div class="ai u"><b>'+c.sn+". "+F(c.pn)+" vs "
 h+='</div>';
 h+='<div class="ab"><h3>&#128197; This Week</h3>';
 if(!wkC.length)h+='<div style="color:var(--tx2);padding:6px;font-size:11px">No more this week</div>';
-else wkC.forEach(function(c){h+='<div class="ai w"><b>'+FD(c.nd)+'</b> - '+c.sn+'. '+F(c.pn)+' vs '+F(c.op)+'<div class="m">CNR: '+F(c.crn)+' | Judge: '+F(c.jn)+' | Court: '+F(c.cr)+'</div></div>'});
+else wkC.forEach(function(c){h+='<div class="ai w"><b>'+FD(c.nd)+'</b> '+F(c.pn)+' vs '+F(c.op)+'<div class="m">CNR: '+F(c.crn)+' | Judge: '+F(c.jn)+' | Court: '+F(c.cr)+'</div></div>'});
 h+='</div>';
 h+='<div class="ab"><h3>&#128338; All Upcoming (30)</h3>';
 var sorted=upcoming.sort(function(a,b){return a.nd<b.nd?-1:a.nd>b.nd?1:0}).slice(0,30);
 sorted.forEach(function(c){var d=dd(c.nd);var cl=d===0?"t":d===1?"u":d<=7?"w":"";
-h+='<div class="ai '+cl+'"><b>'+FD(c.nd)+'</b> - '+c.sn+'. '+F(c.pn)+' vs '+F(c.op)+'<div class="m">Case: '+F(c.cn)+' | CNR: '+F(c.crn)+' | Judge: '+F(c.jn)+' | Status: '+F(c.st)+'</div></div>'});
+h+='<div class="ai '+cl+'"><b>'+FD(c.nd)+'</b> '+F(c.pn)+' vs '+F(c.op)+'<div class="m">Case: '+F(c.cn)+' | CNR: '+F(c.crn)+' | Judge: '+F(c.jn)+' | Status: '+F(c.st)+'</div></div>'});
 h+='</div>';
 $("pg-dash").innerHTML=h;
 }
