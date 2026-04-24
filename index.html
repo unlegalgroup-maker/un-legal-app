@@ -438,7 +438,6 @@ caseEdits[c.id].st="Disposed off case";
 try{localStorage.setItem("u4ce",JSON.stringify(caseEdits))}catch(e){}
 renderH();renderDB();
 }
-====
 function buildCLD(){
 var dts={};cases.forEach(function(c){if(isVD(c.nd))dts[c.nd]=true});var sd=Object.keys(dts).sort();
 var h='<div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;flex-wrap:wrap">';
