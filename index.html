@@ -106,7 +106,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 @media print{.sb,.tb,.btn,.tl,.ft,.fb,.wa,.bell,.np,.share-box,.pty-sel{display:none!important}.mn{margin-left:0!important}.pg{display:block!important}.ct{padding:0}}
 @media(max-width:768px){.sb{display:flex!important;position:fixed;top:0;left:0;height:100%;width:260px;z-index:9000;transform:translateX(-100%);transition:transform .28s cubic-bezier(.4,0,.2,1)}.sb.mob-open{transform:translateX(0)}.mob-ham{display:flex!important;position:fixed;top:0;left:0;z-index:9001;width:44px;height:44px;align-items:center;justify-content:center;background:rgba(10,25,77,0.92);border:none;border-radius:0 0 8px 0;color:#d4af37;font-size:22px;cursor:pointer}.mn{margin-left:0}.sts{grid-template-columns:repeat(2,1fr)}.cg{grid-template-columns:1fr}.clt{font-size:8px}.clt th,.clt td{padding:3px 5px}}
 
-.mob-ham{display:none}.mob-overlay{display:none}</style>
+.mob-ham{display:none}.mob-overlay{display:none}.hcal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}</style>
 </head>
 <body><div id="mob-overlay" class="mob-overlay" onclick="toggleSidebar()" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:8999;"></div>
 <div id="ulg-lock" style="position:fixed;top:0;left:0;width:100%;height:100%;background:linear-gradient(160deg,#1a2744,#0f1929);display:flex;align-items:center;justify-content:center;z-index:99999;flex-direction:column;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
@@ -395,9 +395,14 @@ var ts=todayStr();var tmS=new Date();tmS.setDate(tmS.getDate()+1);var tm=tmS.get
 var wk=new Date();wk.setDate(wk.getDate()+7);var wkS=wk.getFullYear()+"-"+String(wk.getMonth()+1).padStart(2,"0")+"-"+String(wk.getDate()).padStart(2,"0");
 var grp={};cases.forEach(function(c){if(isVD(c.nd)){if(!grp[c.nd])grp[c.nd]=[];grp[c.nd].push(c)}});
 var dts=Object.keys(grp).sort();var h='';
+var bS='padding:6px 14px;border-radius:6px;border:none;cursor:pointer;font-weight:600;font-size:13px;';
+var tb='<div style="margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap">';
+tb+='<button onclick="window._hCV=false;renderH()" style="'+bS+'background:'+(window._hCV?'#eee':'var(--nv)')+';color:'+(window._hCV?'#555':'#fff')+'">&#9776; List View</button>';
+tb+='<button onclick="window._hCV=true;renderH()" style="'+bS+'background:'+(window._hCV?'var(--nv)':'#eee')+';color:'+(window._hCV?'#fff':'#555')+'">&#128197; Calendar View</button></div>';
+if(window._hCV){$("#pg-hear").innerHTML=tb+renderCalendar(grp);return;}
 dts.forEach(function(dk){
 var cl='';if(dk===ts)cl='td';else if(dk===tm)cl='tm';else if(dk>ts&&dk<=wkS)cl='wk';
-h+='<div class="hg"><div class="hgt">'+FD(dk)+' ('+grp[dk].length+' hearing'+(grp[dk].length>1?'s':'')+')</div>';
+h+='<div class="hg"><div class="hgt">'+FD(dk)+' ('+grp[dk].length+' hearing'+(grp[dk].length>1?'s':'')+') </div>';
 grp[dk].forEach(function(c){
 h+='<div class="hi '+cl+'" style="position:relative"><b>'+F(c.pn)+' vs '+F(c.op)+'</b><br>';
 h+='Case: '+F(c.cn)+' | CNR: '+F(c.crn)+' | Judge: '+F(c.jn)+' | Court: '+F(c.cr)+'<br>';
@@ -405,10 +410,89 @@ h+='Last: '+FD(c.ld)+' | Status: '+F(c.st);
 h+='<div style="margin-top:6px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">';
 h+='<span style="font-size:10px;color:var(--nv);font-weight:600">&#128197; Change Date:</span>';
 h+='<input type="date" class="si" value="'+c.nd+'" style="font-size:11px;padding:3px 6px;width:150px" onchange="chgHDate('+c.sn+',this.value)">';
-h+='<button onclick="disposeCase('+c.sn+')" style="margin-left:8px;padding:3px 10px;background:#e74c3c;color:white;border:none;border-radius:4px;cursor:pointer;font-size:11px;font-weight:600;vertical-align:middle">Disposed off case</button>';
+h+='<button onclick="disposeCase('+c.sn+')" style="margin-left:8px;padding:3px 10px;background:#e74c3c;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:11px">Disposed off case</button>';
 h+='</div></div>'});
 h+='</div>'});
-$("pg-hear").innerHTML=h||'<div style="text-align:center;padding:30px;color:var(--tx2)">No hearings</div>';
+$("#pg-hear").innerHTML=h||'<div style="text-align:center;padding:30px;color:var(--tx2)">No hearings</div>';
+}
+function navCal(dir){
+var now=new Date();
+if(window._hCalYear===undefined)window._hCalYear=now.getFullYear();
+if(window._hCalMonth===undefined)window._hCalMonth=now.getMonth();
+window._hCalMonth=window._hCalMonth+dir;
+if(window._hCalMonth>11){window._hCalMonth=0;window._hCalYear=window._hCalYear+1;}
+if(window._hCalMonth<0){window._hCalMonth=11;window._hCalYear=window._hCalYear-1;}
+renderH();
+}
+function renderCalendar(grp){
+var hols=JSON.parse(localStorage.getItem('u4ch')||'{}');
+var now=new Date();
+var yr=(window._hCalYear!==undefined)?window._hCalYear:now.getFullYear();
+var mo=(window._hCalMonth!==undefined)?window._hCalMonth:now.getMonth();
+var mN=['January','February','March','April','May','June','July','August','September','October','November','December'];
+var dN=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+var fd=new Date(yr,mo,1).getDay();
+var dim=new Date(yr,mo+1,0).getDate();
+var ts=todayStr();
+var bS='padding:5px 14px;border-radius:6px;border:1px solid #ccc;cursor:pointer;background:#f5f5f5;font-size:14px;';
+var h='';
+h+='<div style="background:#fff;border-radius:10px;padding:14px;box-shadow:0 2px 8px rgba(0,0,0,0.1)">';
+h+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">';
+h+='<button onclick="navCal(-1)" style="'+bS+'">&#8249; Prev</button>';
+h+='<span style="font-size:17px;font-weight:700;color:var(--nv)">'+mN[mo]+' '+yr+'</span>';
+h+='<button onclick="navCal(1)" style="'+bS+'">Next &#8250;</button>';
+h+='</div>';
+h+='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:3px">';
+dN.forEach(function(n){h+='<div style="padding:5px 2px;font-size:11px;font-weight:700;color:#666;background:#f0f0f0;border-radius:4px;text-align:center">'+n+'</div>';});
+h+='</div>';
+h+='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px">';
+var i;for(i=0;i<fd;i++){h+='<div></div>';}
+var d;for(d=1;d<=dim;d++){
+var ds=yr+'-'+String(mo+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+var cnt=grp[ds]?grp[ds].length:0;
+var isT=ds===ts;
+var isH=hols[ds]?true:false;
+var bg=isT?'var(--nv)':isH?'#fff0f0':cnt>0?'#eaf4fd':'#fafafa';
+var tc=isT?'#fff':'#333';
+var brd=isT?'2px solid var(--nv)':isH?'2px solid #e74c3c':cnt>0?'2px solid #3498db':'1px solid #e0e0e0';
+var dsQ=JSON.stringify(ds);
+h+='<div onclick="toggleCalDay('+dsQ+')" style="padding:4px 2px;border-radius:6px;border:'+brd+';background:'+bg+';cursor:pointer;min-height:58px;text-align:center">';
+h+='<div style="font-size:13px;font-weight:700;color:'+tc+';margin-bottom:2px">'+d+'</div>';
+if(cnt>0){h+='<div style="background:#e74c3c;color:#fff;border-radius:10px;font-size:9px;font-weight:700;padding:1px 5px;display:inline-block">'+cnt+' case'+(cnt>1?'s':'')+'</div>';}
+if(isH){h+='<div style="font-size:8px;color:#c0392b;font-weight:700;margin-top:2px">HOLIDAY</div>';}
+h+='<div style="font-size:8px;margin-top:2px"><span onclick="event.stopPropagation();markHoliday('+dsQ+')" style="cursor:pointer;color:'+(isH?'#e74c3c':'#bbb')+';text-decoration:underline">'+(isH?'Unmark':'+ Hol')+'</span></div>';
+h+='</div>';
+}
+h+='</div></div>';
+h+='<div id="calDayDetail" style="margin-top:12px"></div>';
+return h;
+}
+function toggleCalDay(ds){
+var list=[];
+cases.forEach(function(c){if(isVD(c.nd)&&c.nd===ds)list.push(c);});
+var el=document.getElementById('calDayDetail');
+if(!el)return;
+if(list.length===0){el.innerHTML='<div style="text-align:center;padding:12px;color:#999;font-size:13px">No cases for '+FD(ds)+'</div>';return;}
+var ts=todayStr();var cl=ds===ts?'td':'';
+var h='<div style="background:#fff;border-radius:10px;padding:14px;box-shadow:0 2px 8px rgba(0,0,0,0.1)">';
+h+='<div style="font-size:15px;font-weight:700;color:var(--nv);margin-bottom:10px;border-bottom:2px solid var(--nv);padding-bottom:6px">'+FD(ds)+' &mdash; '+list.length+' Case'+(list.length>1?'s':'')+'</div>';
+list.forEach(function(c){
+h+='<div class="hi '+cl+'" style="position:relative"><b>'+F(c.pn)+' vs '+F(c.op)+'</b><br>';
+h+='Case: '+F(c.cn)+' | CNR: '+F(c.crn)+' | Judge: '+F(c.jn)+' | Court: '+F(c.cr)+'<br>';
+h+='Last: '+FD(c.ld)+' | Status: '+F(c.st);
+h+='<div style="margin-top:6px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">';
+h+='<span style="font-size:10px;color:var(--nv);font-weight:600">&#128197; Change Date:</span>';
+h+='<input type="date" class="si" value="'+c.nd+'" style="font-size:11px;padding:3px 6px;width:150px" onchange="chgHDate('+c.sn+',this.value)">';
+h+='<button onclick="disposeCase('+c.sn+')" style="margin-left:8px;padding:3px 10px;background:#e74c3c;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:11px">Disposed off case</button>';
+h+='</div></div>';});
+h+='</div>';
+el.innerHTML=h;
+}
+function markHoliday(ds){
+var hols=JSON.parse(localStorage.getItem('u4ch')||'{}');
+if(hols[ds]){delete hols[ds];}else{hols[ds]=1;}
+localStorage.setItem('u4ch',JSON.stringify(hols));
+renderH();
 }
 function chgHDate(sn,newDate){
 if(!newDate){alert("Please select a valid date");return}
