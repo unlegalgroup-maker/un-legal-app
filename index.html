@@ -399,7 +399,7 @@ var bS='padding:6px 14px;border-radius:6px;border:none;cursor:pointer;font-weigh
 var tb='<div style="margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap">';
 tb+='<button onclick="window._hCV=false;renderH()" style="'+bS+'background:'+(window._hCV?'#eee':'var(--nv)')+';color:'+(window._hCV?'#555':'#fff')+'">&#9776; List View</button>';
 tb+='<button onclick="window._hCV=true;renderH()" style="'+bS+'background:'+(window._hCV?'var(--nv)':'#eee')+';color:'+(window._hCV?'#fff':'#555')+'">&#128197; Calendar View</button></div>';
-if(window._hCV){$("#pg-hear").innerHTML=tb+renderCalendar(grp);return;}
+if(window._hCV){$("pg-hear").innerHTML=tb+renderCalendar(grp);return;}
 dts.forEach(function(dk){
 var cl='';if(dk===ts)cl='td';else if(dk===tm)cl='tm';else if(dk>ts&&dk<=wkS)cl='wk';
 h+='<div class="hg"><div class="hgt">'+FD(dk)+' ('+grp[dk].length+' hearing'+(grp[dk].length>1?'s':'')+') </div>';
@@ -413,7 +413,7 @@ h+='<input type="date" class="si" value="'+c.nd+'" style="font-size:11px;padding
 h+='<button onclick="disposeCase('+c.sn+')" style="margin-left:8px;padding:3px 10px;background:#e74c3c;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:11px">Disposed off case</button>';
 h+='</div></div>'});
 h+='</div>'});
-$("#pg-hear").innerHTML=h||'<div style="text-align:center;padding:30px;color:var(--tx2)">No hearings</div>';
+$("pg-hear").innerHTML=h||'<div style="text-align:center;padding:30px;color:var(--tx2)">No hearings</div>';
 }
 function navCal(dir){
 var now=new Date();
