@@ -455,7 +455,7 @@ var isH=hols[ds]?true:false;
 var bg=isT?'var(--nv)':isH?'#fff0f0':cnt>0?'#eaf4fd':'#fafafa';
 var tc=isT?'#fff':'#333';
 var brd=isT?'2px solid var(--nv)':isH?'2px solid #e74c3c':cnt>0?'2px solid #3498db':'1px solid #e0e0e0';
-var dsQ=JSON.stringify(ds);
+var dsQ="'"+ds+"'";
 h+='<div onclick="toggleCalDay('+dsQ+')" style="padding:4px 2px;border-radius:6px;border:'+brd+';background:'+bg+';cursor:pointer;min-height:58px;text-align:center">';
 h+='<div style="font-size:13px;font-weight:700;color:'+tc+';margin-bottom:2px">'+d+'</div>';
 if(cnt>0){h+='<div style="background:#e74c3c;color:#fff;border-radius:10px;font-size:9px;font-weight:700;padding:1px 5px;display:inline-block">'+cnt+' case'+(cnt>1?'s':'')+'</div>';}
