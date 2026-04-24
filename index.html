@@ -267,7 +267,7 @@ function sendWAW(n){var ph=n===1?PH1:PH2;window.open("https://wa.me/91"+ph+"?tex
 // ===== CASES =====
 function renderC(){
 var types={};cases.forEach(function(c){if(c.ct)types[c.ct]=(types[c.ct]||0)+1});
-var h='<div class="tl"><input type="text" class="si" style="flex:1;min-width:200px" id="csr" placeholder="Search name, CNR, case no, judge..." oninput="cs=this.value;cp=1;var _sv=this.value;var _sp=this.selectionStart;renderC();var _ni=document.getElementById('csr');if(_ni){_ni.value=_sv;_ni.focus();_ni.setSelectionRange(_sp,_sp);}"></div>';
+var h='<div class="tl"><input type="text" class="si" style="flex:1;min-width:200px" id="csr" placeholder="Search name, CNR, case no, judge..." oninput="cs=this.value;cp=1;document._csrFocus=true;document._csrVal=this.value;document._csrPos=this.selectionStart;renderC()"></div>';
 h+='<div class="ft"><button class="fb'+(cf==="all"?" a":"")+'" onclick="cf=\'all\';cp=1;renderC()">All ('+cases.length+')</button>';
 Object.keys(types).sort().forEach(function(t){h+='<button class="fb'+(cf===t?" a":"")+'" onclick="cf=\''+t.replace(/'/g,"\\'")+'\';cp=1;renderC()">'+t+' ('+types[t]+')</button>'});
 h+='</div>';
@@ -299,6 +299,7 @@ h+='</div>';
 var tp=Math.ceil(fl.length/PP);
 if(tp>1){h+='<div class="pa">';for(var i=1;i<=tp;i++){h+='<button'+(i===cp?' class="a"':'')+' onclick="cp='+i+';renderC()">'+i+'</button>'}h+='</div>'}
 $("pg-cases").innerHTML=h;
+if(document._csrFocus){document._csrFocus=false;var _ni=document.getElementById("csr");if(_ni){_ni.value=document._csrVal||"";_ni.focus();_ni.setSelectionRange(document._csrPos||0,document._csrPos||0);}}
 }
 
 // ===== MODAL =====
