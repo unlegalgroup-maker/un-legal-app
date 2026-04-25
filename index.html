@@ -364,6 +364,7 @@ h+='</div>';
 h+='</div>';
 h+='<div style="margin-top:14px;display:flex;gap:8px;justify-content:center">';
 h+='<button class="btn bp" onclick="editMode=true;renderModal(cases.find(function(x){return x.id===editCaseId}))" style="padding:10px 28px;font-size:12px">&#9998; Edit All Details</button>';
+h+='<button class="btn" onclick="deleteCase('+c.sn+')" style="padding:10px 28px;font-size:12px;background:#e53935;color:#fff;border:none;border-radius:8px;cursor:pointer">&#128465; Delete Case</button>';
 h+='</div>';
 }else{
 // EDIT MODE
@@ -440,6 +441,34 @@ localStorage.setItem("u4notes",JSON.stringify(window.caseNotes||{}));
 if(typeof fbSave==="function")fbSave("u4notes");
 renderModal(c);
 renderC();
+}
+function deleteCase(sn){
+var pwd=prompt("Enter admin password to delete this case:");
+if(pwd===null)return;
+if(pwd!=="Parth@2026"){alert("\u274C Wrong password. You are not authorised to delete cases.");return;}
+var c=cases.find(function(x){return x.sn===sn});
+if(!c)return;
+if(!confirm("Are you sure you want to permanently delete case:\n"+c.sn+". "+c.pn+" vs "+c.op+"\n\nThis cannot be undone!"))return;
+// Remove from cases array
+var idx=cases.indexOf(c);
+if(idx>=0)cases.splice(idx,1);
+// Remove from newCases if it was a new case
+var nc=JSON.parse(localStorage.getItem("u4nc")||"[]");
+nc=nc.filter(function(x){return x.id!==c.id});
+localStorage.setItem("u4nc",JSON.stringify(nc));
+if(typeof fbSave==="function")fbSave("u4nc");
+// Remove any edits for this case
+if(caseEdits[c.id])delete caseEdits[c.id];
+localStorage.setItem("u4ce",JSON.stringify(caseEdits));
+if(typeof fbSave==="function")fbSave("u4ce");
+// Remove notes
+if(window.caseNotes&&window.caseNotes[c.id])delete window.caseNotes[c.id];
+localStorage.setItem("u4notes",JSON.stringify(window.caseNotes||{}));
+if(typeof fbSave==="function")fbSave("u4notes");
+clM();
+renderDB();
+renderC();
+alert("\u2705 Case deleted successfully.");
 }
 function clM(){$("cm").classList.remove("sh");editMode=false}
 
@@ -939,7 +968,14 @@ if(tmc>0)new Notification("UN Legal Group",{body:tmc+" hearing(s) TOMORROW!"});
 }
 }
 
-function resetApp(){if(confirm("Reset all app data? Master sheet data will remain.")){["u4t","u4o","u4c","u4cn","u4du","u4nc","u4ce"].forEach(function(k){localStorage.removeItem(k)});location.reload()}}
+function resetApp(){
+var pwd=prompt("Enter admin password to reset app data:");
+if(pwd===null)return;
+if(pwd!=="Parth@2026"){alert("\u274C Wrong password. You are not authorised to reset app data.");return;}
+if(!confirm("Are you sure you want to reset all app data?\nMaster sheet data will remain.\n\nThis cannot be undone!"))return;
+["u4t","u4o","u4c","u4cn","u4du","u4nc","u4ce","u4notes"].forEach(function(k){localStorage.removeItem(k)});
+location.reload();
+}
 
 document.addEventListener("DOMContentLoaded",function(){
 $("dd").textContent=new Date().toLocaleDateString("en-IN",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
