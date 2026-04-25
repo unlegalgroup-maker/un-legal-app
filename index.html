@@ -266,20 +266,32 @@ function sendWAW(n){var ph=n===1?PH1:PH2;window.open("https://wa.me/91"+ph+"?tex
 
 // ===== CASES =====
 function renderC(){
-var types={};cases.forEach(function(c){if(c.ct)types[c.ct]=(types[c.ct]||0)+1});
-var h='<div class="tl"><input type="text" class="si" style="flex:1;min-width:200px" id="csr" placeholder="Search name, CNR, case no, judge..." oninput="cs=this.value;cp=1;document._csrFocus=true;document._csrVal=this.value;document._csrPos=this.selectionStart;renderC()"></div>';
-h+='<div class="ft"><button class="fb'+(cf==="all"?" a":"")+'" onclick="cf=\'all\';cp=1;renderC()">All ('+cases.length+')</button>';
-Object.keys(types).sort().forEach(function(t){h+='<button class="fb'+(cf===t?" a":"")+'" onclick="cf=\''+t.replace(/'/g,"\\'")+'\';cp=1;renderC()">'+t+' ('+types[t]+')</button>'});
+var ctOpts=["All Types","138 NI ACT","CIVIL","CRIMINAL","ARBITRATION","CONSUMER","FAMILY","LABOUR","RERA","NCLT","NOTICE","EXECUTION","TRANSFER CERTIFICATE","PRE-MEDIATION APPLICATION","TM HEARING","OTHER"];
+var stOpts=["All Status","FRESH MATTER","IN PROGRESS","DISPOSED","STAYED","PART HEARD","PUT UP FOR ARGUMENTS","PUT UP FOR FINAL ARGUMENTS","ADJOURNED","SETTLED"];
+var h='<div class="tl" style="flex-wrap:wrap;gap:8px">';
+h+='<input type="text" class="si" style="flex:1;min-width:200px" id="csr" placeholder="Search name, CNR, case no, judge..." oninput="cs=this.value;cp=1;document._csrFocus=true;document._csrVal=this.value;document._csrPos=this.selectionStart;renderC()">';
+h+='<select id="cf_ct" style="padding:8px 12px;border-radius:8px;border:1px solid var(--bd);background:var(--wh);color:var(--tx);font-size:12px;cursor:pointer" onchange="window._cfCt=this.value;cp=1;renderC()">';
+ctOpts.forEach(function(o){h+='<option'+(window._cfCt===o?' selected':'')+'>'+o+'</option>'});
+h+='</select>';
+h+='<select id="cf_st" style="padding:8px 12px;border-radius:8px;border:1px solid var(--bd);background:var(--wh);color:var(--tx);font-size:12px;cursor:pointer" onchange="window._cfSt=this.value;cp=1;renderC()">';
+stOpts.forEach(function(o){h+='<option'+(window._cfSt===o?' selected':'')+'>'+o+'</option>'});
+h+='</select>';
 h+='</div>';
-var fl=cases;
-if(cf!=="all")fl=fl.filter(function(c){return c.ct===cf});
+var fl=cases.slice();
+if(window._cfCt&&window._cfCt!=="All Types")fl=fl.filter(function(c){return c.ct===window._cfCt});
+if(window._cfSt&&window._cfSt!=="All Status")fl=fl.filter(function(c){return(c.st||"").toUpperCase().indexOf(window._cfSt.toUpperCase())>=0});
 if(cs){var s=cs.toLowerCase();fl=fl.filter(function(c){return[c.pn,c.op,c.cn,c.crn,c.fn,c.jn,c.cr,c.st,c.ar,c.ct,c.nr].join(" ").toLowerCase().indexOf(s)>=0})}
-h+='<div style="font-size:11px;color:var(--tx2);margin-bottom:8px">'+fl.length+' of '+cases.length+' cases</div>';
+var isFiltered=(window._cfCt&&window._cfCt!=="All Types")||(window._cfSt&&window._cfSt!=="All Status")||cs;
+h+='<div style="font-size:11px;color:var(--tx2);margin-bottom:8px">';
+if(isFiltered){h+='<span style="color:var(--nv);font-weight:600">'+fl.length+' results</span> (filtered from '+cases.length+' total)';}
+else{h+=fl.length+' of '+cases.length+' cases';}
+h+='</div>';
 var st2=(cp-1)*PP;var pg=fl.slice(st2,st2+PP);
 h+='<div class="cg">';
 pg.forEach(function(c){
+var noteKey=c.id||c.sn;var hasNote=window.caseNotes&&window.caseNotes[noteKey]&&window.caseNotes[noteKey].trim();
 h+='<div class="cc" onclick="opM('+c.sn+')">';
-h+='<div class="hd"><span class="ti">'+c.sn+'. '+F(c.pn)+'</span><span class="bd2">'+F(c.ct)+'</span></div>';
+h+='<div class="hd"><span class="ti">'+c.sn+'. '+F(c.pn)+'</span><span style="display:flex;gap:6px;align-items:center"><span class="bd2">'+F(c.ct)+'</span>'+(hasNote?'<span style="font-size:9px;background:#e3f2fd;color:#1565c0;padding:2px 6px;border-radius:10px;font-weight:600">&#128221; Notes</span>':'')+'</span></div>';
 h+='<div class="bd">';
 h+='<div class="rw"><span class="k">Vs</span><span class="vl">'+F(c.op)+'</span></div>';
 h+='<div class="rw"><span class="k">Case No</span><span class="vl">'+F(c.cn)+'</span></div>';
@@ -293,7 +305,7 @@ h+='<div class="rw"><span class="k">AR Name</span><span class="vl">'+F(c.ar)+'</
 h+='<div class="rw"><span class="k">Status</span><span class="vl">'+F(c.st)+'</span></div>';
 h+='</div>';
 var am=[];if(c.pa)am.push("PA:"+FM(c.pa));if(c.ta)am.push("Total:"+FM(c.ta));if(c.ra)am.push("Recv:"+FM(c.ra));
-if(am.length)h+='<div class="amt">'+am.join(" \u2022 ")+'</div>';
+if(am.length)h+='<div class="amt">'+am.join(" • ")+'</div>';
 h+='</div>'});
 h+='</div>';
 var tp=Math.ceil(fl.length/PP);
@@ -304,6 +316,7 @@ if(document._csrFocus){document._csrFocus=false;var _ni=document.getElementById(
 
 // ===== MODAL =====
 var caseEdits=JSON.parse(localStorage.getItem("u4ce")||"{}");
+window.caseNotes=JSON.parse(localStorage.getItem("u4notes")||"{}");
 // Apply saved case edits on load
 Object.keys(caseEdits).forEach(function(id){
 var c=cases.find(function(x){return x.id===id});
@@ -330,6 +343,15 @@ Object.keys(LB).forEach(function(k){
 var v;if(isMF(k))v=FM(c[k]);else if(isDF(k))v=FD(c[k]);else v=F(c[k]);
 h+='<div class="mf"><div class="ml">'+LB[k]+'</div><div class="mv">'+v+'</div></div>'});
 
+h+='<div style="margin-top:16px;border-top:1px solid var(--bd);padding-top:14px">';
+h+='<div style="font-weight:600;font-size:12px;color:var(--nv);margin-bottom:8px">&#128221; Case Notes</div>';
+var noteKey=c.id||c.sn;var existingNote=(window.caseNotes&&window.caseNotes[noteKey])||"";
+h+='<textarea id="cn_note" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--bd);font-size:12px;resize:vertical;min-height:80px;font-family:inherit" placeholder="Add internal notes for this case...">'+existingNote.replace(/</g,"&lt;").replace(/>/g,"&gt;")+'</textarea>';
+h+='<div style="display:flex;gap:8px;margin-top:8px">';
+h+='<button class="btn bp" onclick="saveCaseNote('+c.sn+')" style="padding:6px 16px;font-size:11px">&#10003; Save Note</button>';
+if(existingNote)h+='<button class="btn bg2" onclick="deleteCaseNote('+c.sn+')" style="padding:6px 16px;font-size:11px">&#128465; Clear Note</button>';
+h+='</div>';
+h+='</div>';
 h+='<div style="margin-top:14px;display:flex;gap:8px;justify-content:center">';
 h+='<button class="btn bp" onclick="editMode=true;renderModal(cases.find(function(x){return x.id===editCaseId}))" style="padding:10px 28px;font-size:12px">&#9998; Edit All Details</button>';
 h+='</div>';
@@ -388,6 +410,27 @@ renderDB();renderC();
 alert("All changes saved! Updates will reflect across all sections.");
 }
 
+function saveCaseNote(sn){
+var c=cases.find(function(x){return x.sn===sn});if(!c)return;
+var noteKey=c.id||c.sn;
+var el=document.getElementById("cn_note");if(!el)return;
+var txt=el.value.trim();
+if(!window.caseNotes)window.caseNotes={};
+window.caseNotes[noteKey]=txt;
+localStorage.setItem("u4notes",JSON.stringify(window.caseNotes));
+if(typeof fbSave==="function")fbSave("u4notes");
+renderModal(c);
+renderC();
+}
+function deleteCaseNote(sn){
+var c=cases.find(function(x){return x.sn===sn});if(!c)return;
+var noteKey=c.id||c.sn;
+if(window.caseNotes)delete window.caseNotes[noteKey];
+localStorage.setItem("u4notes",JSON.stringify(window.caseNotes||{}));
+if(typeof fbSave==="function")fbSave("u4notes");
+renderModal(c);
+renderC();
+}
 function clM(){$("cm").classList.remove("sh");editMode=false}
 
 // ===== HEARINGS =====
@@ -922,6 +965,7 @@ setInterval(chkN,30*60000);
     u4c:  doc(db, "sync", "comlog"),
     u4ch: doc(db, "sync", "hearingDates"),
     u4cn: doc(db, "sync", "clientNotes"),
+    u4notes: doc(db, "sync", "caseNotes"),
     u4du: doc(db, "sync", "dateUpdates")
   };
 
@@ -1018,6 +1062,13 @@ setInterval(chkN,30*60000);
       const arr = (snap.data()._arr) || [];
       localStorage.setItem("u4o", JSON.stringify(arr));
       if (typeof window.orders !== "undefined") window.orders = arr;
+    });
+    onSnapshot(DOCS.u4notes, function(snap) {
+      if (!snap.exists()) return;
+      const cloud = snap.data();
+      window.caseNotes = Object.assign({}, window.caseNotes||{}, cloud);
+      localStorage.setItem("u4notes", JSON.stringify(window.caseNotes));
+      if (typeof renderC === "function") renderC();
     });
   }
 
