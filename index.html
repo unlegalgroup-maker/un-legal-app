@@ -952,22 +952,42 @@ setInterval(chkN,30*60000);
           parsed = data._arr;
         } else {
           const local = JSON.parse(localStorage.getItem(key) || "{}");
+          // Don't overwrite local with cloud if cloud has _arr key (means it's an array doc)
           parsed = Object.assign({}, local, data);
         }
         localStorage.setItem(key, JSON.stringify(parsed));
         anyUpdate = true;
       } catch(e) { console.warn("fbLoad err for " + key, e.message); }
     }
-    if (anyUpdate && typeof renderDB === "function") renderDB();
+    if (anyUpdate) {
+      // Merge new cases (u4nc) into window.cases
+      if (typeof window.cases !== "undefined") {
+        const ncArr = JSON.parse(localStorage.getItem("u4nc") || "[]");
+        if (ncArr.length > 0) {
+          // Remove old NC entries and re-add from cloud
+          window.cases = window.cases.filter(function(c) { return !String(c.id).startsWith("NC"); });
+          ncArr.forEach(function(nc) {
+            if (!window.cases.find(function(c) { return c.id === nc.id; })) window.cases.push(nc);
+          });
+        }
+        if (typeof renderDB === "function") renderDB();
+        if (typeof renderC === "function") renderC();
+      }
+    }
   }
 
   function fbStartSync() {
     onSnapshot(DOCS.u4nc, function(snap) {
       if (!snap.exists()) return;
       const arr = (snap.data()._arr) || [];
-      const cur = JSON.parse(localStorage.getItem("u4nc") || "[]");
-      if (arr.length >= cur.length) {
-        localStorage.setItem("u4nc", JSON.stringify(arr));
+      localStorage.setItem("u4nc", JSON.stringify(arr));
+      // Merge into window.cases so all users see new cases immediately
+      if (typeof window.cases !== "undefined" && typeof window.D !== "undefined") {
+        const ncIds = new Set(arr.map(function(x) { return x.id; }));
+        // Remove old nc entries, keep base D.cases
+        window.cases = window.cases.filter(function(c) { return !String(c.id).startsWith("NC"); });
+        // Add all new cases from cloud
+        arr.forEach(function(nc) { if (!window.cases.find(function(c) { return c.id === nc.id; })) window.cases.push(nc); });
         if (typeof renderDB === "function") renderDB();
         if (typeof renderC === "function") renderC();
       }
