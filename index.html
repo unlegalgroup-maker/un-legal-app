@@ -144,6 +144,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <button class="btn bg2 bsm" onclick="resetApp()" style="width:100%;opacity:.7">Reset App Data</button>
 </div>
 </div>
+<div id="fb-sync-bar" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9999;background:linear-gradient(90deg,#1a2744,#2c3e50);color:#fff;font-size:11px;font-weight:600;text-align:center;padding:6px;letter-spacing:0.5px;box-shadow:0 2px 8px rgba(0,0,0,0.3)">&#9679; Syncing with cloud&hellip;</div>
 <div class="mn">
 <div class="tb">
 <button id="mob-ham" class="mob-ham" onclick="toggleSidebar()" style="display:none;background:none;border:none;color:var(--nv);font-size:24px;cursor:pointer;padding:0 8px 0 0;line-height:1;" aria-label="Menu">&#9776;</button><h1 id="pt">Dashboard</h1>
@@ -1024,7 +1025,15 @@ setInterval(chkN,30*60000);
     try {
       const data = JSON.parse(raw);
       const payload = Array.isArray(data) ? { _arr: data } : data;
-      setDoc(DOCS[key], payload, { merge: false }).catch(function(e) {
+      // Show saving indicator
+      var _sb=document.getElementById("fb-sync-bar");
+      if(_sb){_sb.style.display="block";_sb.style.background="linear-gradient(90deg,#1a2744,#2c3e50)";_sb.innerHTML="&#9679; Saving&hellip;";}
+      setDoc(DOCS[key], payload, { merge: false }).then(function(){
+        var _sb2=document.getElementById("fb-sync-bar");
+        if(_sb2){_sb2.style.background="linear-gradient(90deg,#1b5e20,#2e7d32)";_sb2.innerHTML="&#10003; Saved";setTimeout(function(){_sb2.style.display="none";},1200);}
+      }).catch(function(e) {
+        var _sb2=document.getElementById("fb-sync-bar");
+        if(_sb2){_sb2.style.background="#b71c1c";_sb2.innerHTML="&#9888; Save failed";setTimeout(function(){_sb2.style.display="none";},2500);}
         console.warn("fbSave failed for " + key, e.message);
       });
     } catch(e) { console.warn("fbSave parse error:", e.message); }
@@ -1137,7 +1146,16 @@ setInterval(chkN,30*60000);
     });
   }
 
-  fbLoadAll().then(function() { fbStartSync(); console.log("Firebase sync ready"); });
+  var _syncBar=document.getElementById("fb-sync-bar");if(_syncBar)_syncBar.style.display="block";
+  fbLoadAll().then(function() {
+    fbStartSync();
+    var _sb=document.getElementById("fb-sync-bar");
+    if(_sb){_sb.style.background="linear-gradient(90deg,#1b5e20,#2e7d32)";_sb.innerHTML="&#10003; Synced";setTimeout(function(){_sb.style.display="none";},1500);}
+    console.log("Firebase sync ready");
+  }).catch(function(){
+    var _sb=document.getElementById("fb-sync-bar");
+    if(_sb){_sb.style.background="#b71c1c";_sb.innerHTML="&#9888; Sync failed - check connection";setTimeout(function(){_sb.style.display="none";},3000);}
+  });
 </script>
 
 <script id="ulg-auth">
