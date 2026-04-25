@@ -872,9 +872,11 @@ var seen={};var matches=[];
 cases.forEach(function(c){var val=(c[field]||"").trim();if(val&&val.toLowerCase().indexOf(q)>=0&&!seen[val]){seen[val]=1;matches.push(val);}});
 matches=matches.slice(0,8);
 if(matches.length===0){listEl.style.display="none";return;}
-listEl.innerHTML=matches.map(function(m){return'<div onmousedown="document.getElementById(\''+id+'\').value=\''+m.replace(/\/g,"\\").replace(/'/g,"\\'")+'\'\u003Bdocument.getElementById(\'ac_'+id+'\').style.display=\'none\'">'+m+'</div>';}).join("");
+window._acMatches=window._acMatches||{};window._acMatches[id]=matches;
+listEl.innerHTML=matches.map(function(m,i){return'<div onmousedown="var el=document.getElementById(\''+id+'\');if(el){el.value=window._acMatches[\''+id+'\']['+i+'];document.getElementById(\'ac_'+id+'\').style.display=\'none\';}">'+m.replace(/</g,"&lt;")+'</div>';}).join("");
 listEl.style.display="block";
 }
+
 function renderBulk(){
 var h='<div class="ab"><h3>&#128197; Bulk Date Update</h3>';
 h+='<p style="font-size:11px;color:var(--tx2);margin-bottom:12px">Search and select multiple cases, then set one date to update all at once.</p>';
