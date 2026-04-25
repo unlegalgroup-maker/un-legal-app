@@ -276,11 +276,21 @@ h+='</select>';
 h+='<select id="cf_st" style="padding:8px 12px;border-radius:8px;border:1px solid var(--bd);background:var(--wh);color:var(--tx);font-size:12px;cursor:pointer" onchange="window._cfSt=this.value;cp=1;renderC()">';
 stOpts.forEach(function(o){h+='<option'+(window._cfSt===o?' selected':'')+'>'+o+'</option>'});
 h+='</select>';
+h+='<select id="cf_so" style="padding:8px 12px;border-radius:8px;border:1px solid var(--bd);background:var(--wh);color:var(--tx);font-size:12px;cursor:pointer" onchange="window._cfSo=this.value;cp=1;renderC()">';
+["Serial No","Next Date ↑","Next Date ↓","Party Name A→Z","Party Name Z→A","Total Amount ↓"].forEach(function(o){h+='<option'+(window._cfSo===o?' selected':'')+'>'+o+'</option>'});
+h+='</select>';
 h+='</div>';
 var fl=cases.slice();
 if(window._cfCt&&window._cfCt!=="All Types")fl=fl.filter(function(c){return c.ct===window._cfCt});
 if(window._cfSt&&window._cfSt!=="All Status")fl=fl.filter(function(c){return(c.st||"").toUpperCase().indexOf(window._cfSt.toUpperCase())>=0});
 if(cs){var s=cs.toLowerCase();fl=fl.filter(function(c){return[c.pn,c.op,c.cn,c.crn,c.fn,c.jn,c.cr,c.st,c.ar,c.ct,c.nr].join(" ").toLowerCase().indexOf(s)>=0})}
+// Apply sort
+var so=window._cfSo||"Serial No";
+if(so==="Next Date ↑"){fl.sort(function(a,b){var av=a.nd||"9999";var bv=b.nd||"9999";return av<bv?-1:av>bv?1:0})}
+else if(so==="Next Date ↓"){fl.sort(function(a,b){var av=a.nd||"";var bv=b.nd||"";return av>bv?-1:av<bv?1:0})}
+else if(so==="Party Name A→Z"){fl.sort(function(a,b){return(a.pn||"").localeCompare(b.pn||"")})}
+else if(so==="Party Name Z→A"){fl.sort(function(a,b){return(b.pn||"").localeCompare(a.pn||"")})}
+else if(so==="Total Amount ↓"){fl.sort(function(a,b){return(parseFloat(b.ta)||0)-(parseFloat(a.ta)||0)})}
 var isFiltered=(window._cfCt&&window._cfCt!=="All Types")||(window._cfSt&&window._cfSt!=="All Status")||cs;
 h+='<div style="font-size:11px;color:var(--tx2);margin-bottom:8px">';
 if(isFiltered){h+='<span style="color:var(--nv);font-weight:600">'+fl.length+' results</span> (filtered from '+cases.length+' total)';}
