@@ -374,13 +374,13 @@ changes[k]=newVal;
 // Also update dateUpdates for nd specifically
 if(changes.nd!==undefined){
 dateUpdates[c.id]=changes.nd;
-localStorage.setItem("u4du",JSON.stringify(dateUpdates));
+localStorage.setItem("u4du",JSON.stringify(dateUpdates));if(typeof fbSave==="function")fbSave("u4du");
 }
 
 // Save all edits
 if(!caseEdits[c.id])caseEdits[c.id]={};
 Object.keys(changes).forEach(function(k){caseEdits[c.id][k]=changes[k]});
-localStorage.setItem("u4ce",JSON.stringify(caseEdits));
+localStorage.setItem("u4ce",JSON.stringify(caseEdits));if(typeof fbSave==="function")fbSave("u4ce");
 
 editMode=false;
 renderModal(c);
@@ -492,7 +492,7 @@ el.innerHTML=h;
 function markHoliday(ds){
 var hols=JSON.parse(localStorage.getItem('u4ch')||'{}');
 if(hols[ds]){delete hols[ds];}else{hols[ds]=1;}
-localStorage.setItem('u4ch',JSON.stringify(hols));
+localStorage.setItem('u4ch',JSON.stringify(hols));if(typeof fbSave==="function")fbSave("u4ch");
 renderH();
 }
 function chgHDate(sn,newDate){
@@ -503,8 +503,8 @@ if(!dateUpdates)dateUpdates={};
 dateUpdates[c.id]=newDate;
 if(!caseEdits[c.id])caseEdits[c.id]={};
 caseEdits[c.id].nd=newDate;caseEdits[c.id].ld=oldDate;
-try{localStorage.setItem("u4du",JSON.stringify(dateUpdates));localStorage.setItem("u4ce",JSON.stringify(caseEdits))}catch(e){}
-renderH();renderDB();buildCLD();
+try{localStorage.setItem("u4du",JSON.stringify(dateUpdates));if(typeof fbSave==="function")fbSave("u4du");localStorage.setItem("u4ce",JSON.stringify(caseEdits))}catch(e){}
+renderH();if(typeof fbSave==="function")fbSave("u4ce");renderDB();buildCLD();
 alert("Date changed: "+F(c.pn)+" vs "+F(c.op)+"\nOld: "+FD(oldDate)+" \u2192 New: "+FD(newDate));
 }
 
@@ -520,7 +520,7 @@ caseEdits[c.id].nd="";
 caseEdits[c.id].ld=oldNd;
 caseEdits[c.id].st="Disposed off case";
 try{localStorage.setItem("u4ce",JSON.stringify(caseEdits))}catch(e){}
-renderH();renderDB();
+renderH();if(typeof fbSave==="function")fbSave("u4ce");renderDB();
 }
 function buildCLD(){
 var dts={};cases.forEach(function(c){if(isVD(c.nd))dts[c.nd]=true});var sd=Object.keys(dts).sort();
@@ -612,7 +612,7 @@ try{localStorage.setItem("u4ce",JSON.stringify(caseEdits))}catch(e){}
 
 // ===== TASKS =====
 function renderT(){
-var h='<div class="tl"><input id="tinp" class="si" style="flex:1" placeholder="New task..." onkeydown="if(event.key===\'Enter\')addT()"><select id="tpri" class="si" style="width:110px"><option>Normal</option><option>High</option><option>Urgent</option></select><button class="btn bp" onclick="addT()">Add Task</button></div>';
+var h='<div class="tl"><input id="tinp" class="si" style="flex:1" placeholder="New task..." onkeydown="if(event.key===\'Enter\')addT()"><select id="tpri" class="si" style="width:110px"><option>Normal</option><option>High</option><option>Urgent</option></select><button class="btn bp" onclick="addT()">Add Task</button></div>';if(typeof fbSave==="function")fbSave("u4ce");
 h+='<div class="ft"><button class="fb'+(tf==="all"?" a":"")+'" onclick="tf=\'all\';renderT()">All</button><button class="fb'+(tf==="p"?" a":"")+'" onclick="tf=\'p\';renderT()">Pending</button><button class="fb'+(tf==="d"?" a":"")+'" onclick="tf=\'d\';renderT()">Done</button></div>';
 var fl=tasks;if(tf==="p")fl=tasks.filter(function(t){return t.s!=="d"});if(tf==="d")fl=tasks.filter(function(t){return t.s==="d"});
 fl.forEach(function(t){var ri=tasks.indexOf(t);
@@ -622,9 +622,9 @@ h+='<div style="display:flex;gap:4px"><button class="btn bsm" style="background:
 if(!fl.length)h+='<div style="text-align:center;padding:20px;color:var(--tx2);font-size:11px">No tasks yet. Add one above.</div>';
 $("pg-task").innerHTML=h;
 }
-function addT(){var inp=$("tinp");var pri=$("tpri");if(!inp||!inp.value.trim())return;tasks.push({t:inp.value.trim(),p:pri.value,s:"p",d:new Date().toISOString()});inp.value="";localStorage.setItem("u4t",JSON.stringify(tasks));renderT()}
-function cmpT(i){tasks[i].s=tasks[i].s==="d"?"p":"d";localStorage.setItem("u4t",JSON.stringify(tasks));renderT()}
-function delT(i){tasks.splice(i,1);localStorage.setItem("u4t",JSON.stringify(tasks));renderT()}
+function addT(){var inp=$("tinp");var pri=$("tpri");if(!inp||!inp.value.trim())return;tasks.push({t:inp.value.trim(),p:pri.value,s:"p",d:new Date().toISOString()});inp.value="";localStorage.setItem("u4t",JSON.stringify(tasks));if(typeof fbSave==="function")fbSave("u4t");renderT()}
+function cmpT(i){tasks[i].s=tasks[i].s==="d"?"p":"d";localStorage.setItem("u4t",JSON.stringify(tasks));if(typeof fbSave==="function")fbSave("u4t");renderT()}
+function delT(i){tasks.splice(i,1);localStorage.setItem("u4t",JSON.stringify(tasks));if(typeof fbSave==="function")fbSave("u4t");renderT()}
 
 // ===== ORDERS =====
 function renderO(){
@@ -643,11 +643,11 @@ var cv=$("ocs").value;if(!cv){alert("Select case");return}
 var o={cs:parseInt(cv),dt:$("odt").value||todayStr(),tp:$("otp").value,nt:$("ont").value,fn2:"",fd2:""};
 var fi=$("ofl");
 if(fi.files&&fi.files[0]){var file=fi.files[0];o.fn2=file.name;var rd=new FileReader();
-rd.onload=function(e){o.fd2=e.target.result;orders.push(o);try{localStorage.setItem("u4o",JSON.stringify(orders))}catch(x){alert("Storage full!")}renderOL();$("ont").value="";fi.value=""};
+rd.onload=function(e){o.fd2=e.target.result;orders.push(o);try{localStorage.setItem("u4o",JSON.stringify(orders))}catch(x){alert("Storage full!")}renderOL();if(typeof fbSave==="function")fbSave("u4o");$("ont").value="";fi.value=""};
 rd.readAsDataURL(file)}
-else{orders.push(o);localStorage.setItem("u4o",JSON.stringify(orders));renderOL();$("ont").value=""}
+else{orders.push(o);localStorage.setItem("u4o",JSON.stringify(orders));if(typeof fbSave==="function")fbSave("u4o");renderOL();$("ont").value=""}
 }
-function delO(i){if(confirm("Delete?")){orders.splice(i,1);localStorage.setItem("u4o",JSON.stringify(orders));renderOL()}}
+function delO(i){if(confirm("Delete?")){orders.splice(i,1);localStorage.setItem("u4o",JSON.stringify(orders));if(typeof fbSave==="function")fbSave("u4o");renderOL()}}
 function renderOL(){
 var h='';orders.forEach(function(o,i){
 var c=cases.find(function(x){return x.sn===o.cs});var nm=c?c.sn+'. '+F(c.pn)+' vs '+F(c.op):'Unknown';
@@ -707,7 +707,7 @@ c.no=no;c.arn=arn;c.nop=nop;c.eop=eop;
 if(!caseEdits[c.id])caseEdits[c.id]={};
 caseEdits[c.id].no=no;caseEdits[c.id].arn=arn;caseEdits[c.id].nop=nop;caseEdits[c.id].eop=eop;
 try{localStorage.setItem("u4ce",JSON.stringify(caseEdits))}catch(e){}
-alert("Phone numbers saved!");updCI();
+alert("Phone numbers saved!");if(typeof fbSave==="function")fbSave("u4ce");updCI();
 }
 function getCommPhones(){var sn=parseInt($("ccas").value);var c=cases.find(function(x){return x.sn===sn});return c||null;}
 function gc2(){var sn=parseInt($("ccas").value);return cases.find(function(x){return x.sn===sn})}
@@ -717,7 +717,7 @@ function doWA(){var c=gc2();if(!c){alert("Select case first");return}var ph=getC
 function doEM(){var c=gc2();if(!c){alert("Select case first");return}if(commTarget==="client"){alert("No email on file for client.");return}var em=c.eop||"";var msg=$("cmsg").value||"";if(em){window.open("mailto:"+em+"?subject=Re: "+F(c.pn)+" vs "+F(c.op)+"&body="+encodeURIComponent(msg));lgC(c,"Email to "+getCommName(c),msg)}else alert("No email for opposite party")}
 function doSM(){var c=gc2();if(!c){alert("Select case first");return}var ph=getCommPhone(c);if(ph.length>=10){window.open("sms:+91"+ph+"?body="+encodeURIComponent($("cmsg").value||""));lgC(c,"SMS to "+getCommName(c),"")}else alert("No valid phone")}
 function doCL(){var c=gc2();if(!c){alert("Select case first");return}var ph=getCommPhone(c);if(ph.length>=10){window.open("tel:+91"+ph);lgC(c,"Call to "+getCommName(c),"")}else alert("No valid phone")}
-function lgC(c,ch,msg){comlog.push({cs:c.sn,ch:ch,m:msg,d:new Date().toISOString()});localStorage.setItem("u4c",JSON.stringify(comlog));renderCLG()}
+function lgC(c,ch,msg){comlog.push({cs:c.sn,ch:ch,m:msg,d:new Date().toISOString()});localStorage.setItem("u4c",JSON.stringify(comlog));if(typeof fbSave==="function")fbSave("u4c");renderCLG()}
 function renderCLG(){var h='<h3 style="margin:14px 0 8px;color:var(--nv);font-size:12px">Communication Log</h3>';
 if(!comlog.length){h+='<div style="color:var(--tx2);padding:8px;font-size:10px">No communications yet</div>';var el=$("clg");if(el)el.innerHTML=h;return}
 comlog.slice().reverse().forEach(function(cm){var c=cases.find(function(x){return x.sn===cm.cs});var nm=c?F(c.pn)+' vs '+F(c.op):'Unknown';
@@ -770,7 +770,7 @@ if(crPage<tp)h+='<button onclick="crPage++;renderCRTable()">Next</button>';h+='<
 var el=$("crTbl");if(el)el.innerHTML=h;
 }
 function saveCN(id,v){clientNums[id]=v;localStorage.setItem("u4cn",JSON.stringify(clientNums))}
-function getCRMsg(c){var msg=$("crmsg")?$("crmsg").value:"Hearing reminder";return msg+"\n\nCase: "+F(c.pn)+" vs "+F(c.op)+"\nDate: "+FD(c.nd)+"\nCourt: "+F(c.cr)+"\nJudge: "+F(c.jn)+"\n\n- UN Legal Group\nwww.unsolvedlegal.com"}
+function getCRMsg(c){var msg=$("crmsg")?$("crmsg").value:"Hearing reminder";if(typeof fbSave==="function")fbSave("u4cn");return msg+"\n\nCase: "+F(c.pn)+" vs "+F(c.op)+"\nDate: "+FD(c.nd)+"\nCourt: "+F(c.cr)+"\nJudge: "+F(c.jn)+"\n\n- UN Legal Group\nwww.unsolvedlegal.com"}
 function crWA(id){var c=cases.find(function(x){return x.id===id});if(!c)return;var ph=(clientNums[id]||c.nop||c.no||"").replace(/[^0-9]/g,"").slice(0,10);if(ph.length<10){alert("Enter valid phone number");return}window.open("https://wa.me/91"+ph+"?text="+encodeURIComponent(getCRMsg(c)))}
 function crSM(id){var c=cases.find(function(x){return x.id===id});if(!c)return;var ph=(clientNums[id]||c.nop||"").replace(/[^0-9]/g,"").slice(0,10);if(ph.length<10){alert("Enter valid phone");return}window.open("sms:+91"+ph+"?body="+encodeURIComponent(getCRMsg(c)))}
 function crCL(id){var c=cases.find(function(x){return x.id===id});if(!c)return;var ph=(clientNums[id]||c.nop||"").replace(/[^0-9]/g,"").slice(0,10);if(ph.length<10){alert("Enter valid phone");return}window.open("tel:+91"+ph)}
@@ -796,11 +796,11 @@ var pn=$("nc_pn").value.trim();var op=$("nc_op").value.trim();
 if(!pn||!op){alert("Party Name and Opposite Party are required!");return}
 var nextId="NC"+(newCases.length+1).toString().padStart(4,"0");var nextSN=cases.length+1;
 var nc={id:nextId,sn:nextSN,cn:$("nc_cn").value.trim(),pn:pn,pr:$("nc_pr").value,oa:$("nc_oa").value.trim(),on:$("nc_on").value.trim(),no:$("nc_no").value.trim(),ar:$("nc_ar").value.trim(),arn:$("nc_arn").value.trim(),cc:$("nc_cc").value.trim(),op:op,opa:$("nc_opa").value.trim(),sta:$("nc_sta").value.trim(),nop:$("nc_nop").value.trim(),eop:$("nc_eop").value.trim(),pa:parseFloat($("nc_pa").value)||0,ia:parseFloat($("nc_ia").value)||0,ta:parseFloat($("nc_ta").value)||0,ra:0,chq:$("nc_chq").value.trim(),ct:$("nc_ct").value,fn:$("nc_fn").value.trim(),crn:$("nc_crn").value.trim(),jn:$("nc_jn").value.trim(),cr:$("nc_cr").value.trim(),ld:$("nc_ld").value||"",nd:$("nc_nd").value||"",nr:$("nc_nr").value.trim(),dln:$("nc_dln").value||"",st:$("nc_st").value.trim()||"FRESH MATTER",cmp:$("nc_cmp").value.trim(),dcmp:"",cs:$("nc_cs").value.trim()};
-cases.push(nc);newCases.push(nc);localStorage.setItem("u4nc",JSON.stringify(newCases));
+cases.push(nc);newCases.push(nc);localStorage.setItem("u4nc",JSON.stringify(newCases));if(typeof fbSave==="function")fbSave("u4nc");
 alert("Case added! Total: "+cases.length);clearNCForm();renderNC();renderDB();renderC();
 }
 function clearNCForm(){["nc_pn","nc_op","nc_cn","nc_fn","nc_crn","nc_jn","nc_cr","nc_nd","nc_ld","nc_oa","nc_on","nc_no","nc_ar","nc_arn","nc_cc","nc_opa","nc_sta","nc_nop","nc_eop","nc_pa","nc_ia","nc_ta","nc_chq","nc_nr","nc_dln","nc_st","nc_cmp","nc_cs"].forEach(function(id){var el=$(id);if(el)el.value=""})}
-function delNC(i){if(!confirm("Remove?"))return;var nc=newCases[i];var idx=cases.findIndex(function(c){return c.id===nc.id});if(idx>=0)cases.splice(idx,1);newCases.splice(i,1);localStorage.setItem("u4nc",JSON.stringify(newCases));renderNC();renderDB();renderC()}
+function delNC(i){if(!confirm("Remove?"))return;var nc=newCases[i];var idx=cases.findIndex(function(c){return c.id===nc.id});if(idx>=0)cases.splice(idx,1);newCases.splice(i,1);localStorage.setItem("u4nc",JSON.stringify(newCases));if(typeof fbSave==="function")fbSave("u4nc");renderNC();renderDB();renderC()}
 
 // ===== SHARE & DOWNLOAD (FIXED) =====
 function renderShare(){
@@ -907,68 +907,101 @@ setInterval(chkN,30*60000);
     authDomain: "un-legal-group.firebaseapp.com",
     projectId: "un-legal-group",
     storageBucket: "un-legal-group.firebasestorage.app",
-    messagingSenderId: "253785902105",
-    appId: "1:253785902105:web:bee360384d57f38d9d6e88"
+    messagingSenderId: "1057438982398",
+    appId: "1:1057438982398:web:bee360384d57f38d9d6e88"
   };
 
   const fbApp = initializeApp(firebaseConfig);
   const db = getFirestore(fbApp);
-  const DATE_DOC = doc(db, "appData", "hearingDates");
 
-  async function saveDatesToCloud(update) {
-    try { await setDoc(DATE_DOC, update, { merge: true }); }
-    catch(e) { console.warn("Firebase save error:", e); }
-  }
+  const DOCS = {
+    u4ce: doc(db, "sync", "caseEdits"),
+    u4nc: doc(db, "sync", "newCases"),
+    u4t:  doc(db, "sync", "tasks"),
+    u4o:  doc(db, "sync", "orders"),
+    u4c:  doc(db, "sync", "comlog"),
+    u4ch: doc(db, "sync", "hearingDates"),
+    u4cn: doc(db, "sync", "clientNotes"),
+    u4du: doc(db, "sync", "dateUpdates")
+  };
 
-  async function loadDatesFromCloud() {
+  window._fbDOCS = DOCS;
+
+  window.fbSave = function(key) {
+    if (!DOCS[key]) return;
+    const raw = localStorage.getItem(key);
+    if (!raw) return;
     try {
-      const snap = await getDoc(DATE_DOC);
-      if (!snap.exists()) return;
-      const cloudDates = snap.data();
-      let local = {};
-      try { local = JSON.parse(localStorage.getItem("u4du") || "{}"); } catch(e) {}
-      const merged = Object.assign({}, local, cloudDates);
-      localStorage.setItem("u4du", JSON.stringify(merged));
-      if (window.cases) {
-        for (const [sn, nd] of Object.entries(cloudDates)) {
-          const c = window.cases.find(x => String(x.sn) === String(sn));
-          if (c) c.nd = nd;
+      const data = JSON.parse(raw);
+      const payload = Array.isArray(data) ? { _arr: data } : data;
+      setDoc(DOCS[key], payload, { merge: false }).catch(function(e) {
+        console.warn("fbSave failed for " + key, e.message);
+      });
+    } catch(e) { console.warn("fbSave parse error:", e.message); }
+  };
+
+  async function fbLoadAll() {
+    let anyUpdate = false;
+    for (const key in DOCS) {
+      try {
+        const snap = await getDoc(DOCS[key]);
+        if (!snap.exists()) continue;
+        const data = snap.data();
+        let parsed;
+        if (data._arr !== undefined) {
+          parsed = data._arr;
+        } else {
+          const local = JSON.parse(localStorage.getItem(key) || "{}");
+          parsed = Object.assign({}, local, data);
         }
-      }
-      if (typeof renderDB === "function") try { renderDB(); } catch(e) {}
-      if (typeof renderH === "function") try { renderH(); } catch(e) {}
-    } catch(e) { console.warn("Firebase load error:", e); }
+        localStorage.setItem(key, JSON.stringify(parsed));
+        anyUpdate = true;
+      } catch(e) { console.warn("fbLoad err for " + key, e.message); }
+    }
+    if (anyUpdate && typeof renderDB === "function") renderDB();
   }
 
-  window.addEventListener("load", function() {
-    loadDatesFromCloud();
-
-    onSnapshot(DATE_DOC, (snap) => {
+  function fbStartSync() {
+    onSnapshot(DOCS.u4nc, function(snap) {
       if (!snap.exists()) return;
-      const cloudDates = snap.data();
-      let changed = false;
-      if (window.cases) {
-        for (const [sn, nd] of Object.entries(cloudDates)) {
-          const c = window.cases.find(x => String(x.sn) === String(sn));
-          if (c && c.nd !== nd) { c.nd = nd; changed = true; }
-        }
-      }
-      if (changed) {
-        if (typeof renderDB === "function") try { renderDB(); } catch(e) {}
-        if (typeof renderH === "function") try { renderH(); } catch(e) {}
+      const arr = (snap.data()._arr) || [];
+      const cur = JSON.parse(localStorage.getItem("u4nc") || "[]");
+      if (arr.length >= cur.length) {
+        localStorage.setItem("u4nc", JSON.stringify(arr));
+        if (typeof renderDB === "function") renderDB();
+        if (typeof renderC === "function") renderC();
       }
     });
+    onSnapshot(DOCS.u4ce, function(snap) {
+      if (!snap.exists()) return;
+      const cloud = snap.data();
+      const local = JSON.parse(localStorage.getItem("u4ce") || "{}");
+      localStorage.setItem("u4ce", JSON.stringify(Object.assign({}, local, cloud)));
+      if (typeof renderDB === "function") renderDB();
+    });
+    onSnapshot(DOCS.u4ch, function(snap) {
+      if (!snap.exists()) return;
+      const cloud = snap.data();
+      const local = JSON.parse(localStorage.getItem("u4ch") || "{}");
+      const merged = Object.assign({}, local, cloud);
+      localStorage.setItem("u4ch", JSON.stringify(merged));
+      if (typeof window.hols !== "undefined") window.hols = merged;
+    });
+    onSnapshot(DOCS.u4t, function(snap) {
+      if (!snap.exists()) return;
+      const arr = (snap.data()._arr) || [];
+      localStorage.setItem("u4t", JSON.stringify(arr));
+      if (typeof window.tasks !== "undefined") { window.tasks = arr; if (typeof renderT === "function") renderT(); }
+    });
+    onSnapshot(DOCS.u4o, function(snap) {
+      if (!snap.exists()) return;
+      const arr = (snap.data()._arr) || [];
+      localStorage.setItem("u4o", JSON.stringify(arr));
+      if (typeof window.orders !== "undefined") window.orders = arr;
+    });
+  }
 
-    if (typeof window.chgHDate === "function") {
-      const _orig = window.chgHDate;
-      window.chgHDate = function(sn, newDate) {
-        _orig.call(this, sn, newDate);
-        const update = {};
-        update[String(sn)] = newDate;
-        saveDatesToCloud(update);
-      };
-    }
-  });
+  fbLoadAll().then(function() { fbStartSync(); console.log("Firebase sync ready"); });
 </script>
 
 <script id="ulg-auth">
