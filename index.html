@@ -135,7 +135,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <a class="ni" onclick="go('comm')">&#128172; Communications</a>
 <a class="ni" onclick="go('crem')">&#128241; Client Reminders</a>
 <a class="ni" onclick="go('newc')">&#10133; Add New Case</a>
-<a class="ni" onclick="go('bulk')">&#128197; Bulk Date Update</a>
+<a class="ni" onclick="go('bulk')">&#128197; Bulk Update</a>
 <a class="ni" onclick="go('share')">&#128279; Share &amp; Download</a>
 </div>
 <div class="sf">
@@ -192,7 +192,7 @@ var notifs=[];
 Object.keys(dateUpdates).forEach(function(id){var c=cases.find(function(x){return x.id===id});if(c)c.nd=dateUpdates[id]});
 newCases.forEach(function(nc){cases.push(nc)});
 
-var LB={sn:"S.No",cn:"Case No",pn:"Party Name",op:"Opposite Party",ct:"Case Type",pr:"Pet/Resp",crn:"CNR No",fn:"Filing No",jn:"Judge Name",cr:"Court Room",nd:"Next Hearing",ld:"Last Hearing",st:"Status",ar:"AR Name",arn:"AR Number",on:"Owner Name",no:"Owner Phone",oa:"Office Address",cc:"Customer Code",opa:"Opp Address",sta:"State",nop:"Opp Phone",eop:"Opp Email",pa:"Principal Amt",ia:"Interest Amt",ta:"Total Amt",ra:"Recovered",chq:"Cheque No",nr:"Notice Ref",dln:"Notice Date",cmp:"Compliance",dcmp:"Compliance Date",cs:"Calling Status"};
+var LB={sn:"S.No",cn:"Case No",pn:"Party Name",op:"Opposite Party",ct:"Case Type",pr:"Pet/Resp",crn:"CNR No",fn:"Filing No",jn:"Judge Name",cr:"Court Room",crt:"Court Name",nd:"Next Hearing",ld:"Last Hearing",st:"Status",ar:"AR Name",arn:"AR Number",on:"Owner Name",no:"Owner Phone",oa:"Office Address",cc:"Customer Code",opa:"Opp Address",sta:"State",nop:"Opp Phone",eop:"Opp Email",pa:"Principal Amt",ia:"Interest Amt",ta:"Total Amt",ra:"Recovered",chq:"Cheque No",nr:"Notice Ref",dln:"Notice Date",cmp:"Compliance",dcmp:"Compliance Date",cs:"Calling Status"};
 
 function $(id){return document.getElementById(id)}
 function F(v){return(v===null||v===undefined||v==="")?"\u2014":String(v)}
@@ -209,7 +209,7 @@ document.querySelectorAll(".pg").forEach(function(x){x.classList.remove("a")});
 $("pg-"+p).classList.add("a");
 document.querySelectorAll(".ni").forEach(function(x){x.classList.remove("a")});
 if(event&&event.target)event.target.classList.add("a");
-var T={dash:"Dashboard",cases:"All Cases ("+cases.length+")",hear:"Hearings Calendar",cl:"Cause List",nodt:"No-Date Cases",task:"Daily Tasks",ord:"Orders & Files",comm:"Communications",crem:"Client Reminders",newc:"Add New Case / Fresh Matter",bulk:"Bulk Date Update",share:"Share & Download"};
+var T={dash:"Dashboard",cases:"All Cases ("+cases.length+")",hear:"Hearings Calendar",cl:"Cause List",nodt:"No-Date Cases",task:"Daily Tasks",ord:"Orders & Files",comm:"Communications",crem:"Client Reminders",newc:"Add New Case / Fresh Matter",bulk:"Bulk Update",share:"Share & Download"};
 $("pt").textContent=T[p]||p;
 if(p==="hear")renderH();if(p==="cl")buildCLD();if(p==="nodt")renderND();if(p==="ord")renderO();if(p==="comm")renderCM();if(p==="crem")renderCR();if(p==="newc")renderNC();if(p==="bulk")renderBulk();if(p==="share")renderShare();
 }
@@ -283,11 +283,15 @@ h+='</select>';
 h+='<select id="cf_so" style="padding:8px 12px;border-radius:8px;border:1px solid var(--bd);background:var(--wh);color:var(--tx);font-size:12px;cursor:pointer" onchange="window._cfSo=this.value;cp=1;renderC()">';
 ["Serial No","Next Date ↑","Next Date ↓","Party Name A→Z","Party Name Z→A","Total Amount ↓"].forEach(function(o){h+='<option'+(window._cfSo===o?' selected':'')+'>'+o+'</option>'});
 h+='</select>';
+h+='<input type="text" id="cf_jf" placeholder="👨‍⚖️ Judge" value="'+(window._cfJf||'')+'" oninput="window._cfJf=this.value;renderC()" style="padding:6px 10px;border-radius:8px;border:1px solid var(--bd);font-size:12px;width:130px" title="Filter by Judge Name">';
+h+='<input type="text" id="cf_crf" placeholder="🏛 Court" value="'+(window._cfCrf||'')+'" oninput="window._cfCrf=this.value;renderC()" style="padding:6px 10px;border-radius:8px;border:1px solid var(--bd);font-size:12px;width:130px" title="Filter by Court Name">';
 h+='</div>';
 var fl=cases.slice();
 if(window._cfCt&&window._cfCt!=="All Types")fl=fl.filter(function(c){return c.ct===window._cfCt});
 if(window._cfSt&&window._cfSt!=="All Status")fl=fl.filter(function(c){return(c.st||"").toUpperCase().indexOf(window._cfSt.toUpperCase())>=0});
-if(cs){var s=cs.toLowerCase();fl=fl.filter(function(c){return[c.pn,c.op,c.cn,c.crn,c.fn,c.jn,c.cr,c.st,c.ar,c.ct,c.nr].join(" ").toLowerCase().indexOf(s)>=0})}
+if(window._cfJf&&window._cfJf.trim())fl=fl.filter(function(c){return(c.jn||"").toLowerCase().indexOf(window._cfJf.toLowerCase().trim())>=0;});
+if(window._cfCrf&&window._cfCrf.trim())fl=fl.filter(function(c){return(c.crt||"").toLowerCase().indexOf(window._cfCrf.toLowerCase().trim())>=0;});
+if(cs){var s=cs.toLowerCase();fl=fl.filter(function(c){return[c.pn,c.op,c.cn,c.crn,c.fn,c.jn,c.cr,c.st,c.ar,c.ct,c.nr,c.crt||""].join(" ").toLowerCase().indexOf(s)>=0})}
 // Apply sort
 var so=window._cfSo||"Serial No";
 if(so==="Next Date ↑"){fl.sort(function(a,b){var av=a.nd||"9999";var bv=b.nd||"9999";return av<bv?-1:av>bv?1:0})}
@@ -373,7 +377,7 @@ h+='</div>';
 }else{
 // EDIT MODE
 h+='<div style="background:#fffde7;padding:8px 12px;border-radius:8px;margin-bottom:12px;font-size:11px;color:#f57f17;font-weight:600">&#9998; Edit Mode - Change any field and click Save</div>';
-var editFields=["cn","pn","op","ct","pr","crn","fn","jn","cr","nd","ld","st","ar","arn","on","no","oa","cc","opa","sta","nop","eop","pa","ia","ta","ra","chq","nr","dln","cmp","dcmp","cs"];
+var editFields=["cn","pn","op","ct","pr","crn","fn","jn","cr","crt","nd","ld","st","ar","arn","on","no","oa","cc","opa","sta","nop","eop","pa","ia","ta","ra","chq","nr","dln","cmp","dcmp","cs"];
 editFields.forEach(function(k){
 var v=c[k];if(v===null||v===undefined)v="";v=String(v);if(v==="\u2014")v="";
 var inpType="text";
@@ -396,7 +400,7 @@ $("mbd").innerHTML=h;$("cm").classList.add("sh");
 function saveAllEdits(){
 var c=cases.find(function(x){return x.id===editCaseId});
 if(!c)return;
-var editFields=["cn","pn","op","ct","pr","crn","fn","jn","cr","nd","ld","st","ar","arn","on","no","oa","cc","opa","sta","nop","eop","pa","ia","ta","ra","chq","nr","dln","cmp","dcmp","cs"];
+var editFields=["cn","pn","op","ct","pr","crn","fn","jn","cr","crt","nd","ld","st","ar","arn","on","no","oa","cc","opa","sta","nop","eop","pa","ia","ta","ra","chq","nr","dln","cmp","dcmp","cs"];
 var changes={};
 editFields.forEach(function(k){
 var el=$("ed_"+k);if(!el)return;
@@ -878,11 +882,12 @@ listEl.style.display="block";
 }
 
 function renderBulk(){
-var h='<div class="ab"><h3>&#128197; Bulk Date Update</h3>';
+var h='<div class="ab"><h3>&#128197; Bulk Update</h3>';
 h+='<p style="font-size:11px;color:var(--tx2);margin-bottom:12px">Search and select multiple cases, then set one date to update all at once.</p>';
 h+='<div class="tl" style="flex-wrap:wrap;gap:8px;margin-bottom:8px">';
 h+='<input type="text" class="si" style="flex:1;min-width:200px" id="blk-srch" placeholder="Search by party name, CNR, case no..." oninput="renderBulkList()">';
 h+='<input type="date" id="blk-date" style="padding:8px 12px;border-radius:8px;border:1px solid var(--bd);font-size:12px">';
+h+='<input type="text" id="blk-judge" placeholder="New Judge Name (optional)" style="padding:8px 12px;border-radius:8px;border:1px solid var(--bd);font-size:12px;margin-left:8px;width:220px">';
 h+='<button class="btn bp" onclick="applyBulkDate()" style="padding:8px 18px;font-size:12px">&#10004; Update Selected</button>';
 h+='</div>';
 h+='<div style="font-size:11px;margin-bottom:8px;color:var(--tx2)"><label><input type="checkbox" id="blk-all" onchange="bulkSelectAll(this.checked)" style="margin-right:6px">Select All Visible</label></div>';
@@ -905,7 +910,8 @@ var bl=document.getElementById("blk-list");if(bl)bl.innerHTML=h;
 function bulkSelectAll(checked){document.querySelectorAll(".blk-cb").forEach(function(cb){cb.checked=checked;});}
 function applyBulkDate(){
 var newDate=document.getElementById("blk-date").value;
-if(!newDate){alert("Please select a date first!");return;}
+var newJudge=(document.getElementById("blk-judge")||{value:""}).value.trim();
+if(!newDate&&!newJudge){alert("Please select a date or enter a judge name to update!");return;}
 var cbs=document.querySelectorAll(".blk-cb:checked");
 if(cbs.length===0){alert("Please select at least one case!");return;}
 if(!confirm("Update next hearing date to "+newDate+" for "+cbs.length+" case(s)?"))return;
@@ -914,8 +920,11 @@ cbs.forEach(function(cb){
 var id=cb.getAttribute("data-id");
 var c=cases.find(function(x){return x.id===id;});
 if(!c)return;
-c.nd=newDate;dateUpdates[id]=newDate;
-if(!caseEdits[id])caseEdits[id]={};caseEdits[id].nd=newDate;count++;
+if(newDate){c.nd=newDate;dateUpdates[id]=newDate;
+if(!caseEdits[id])caseEdits[id]={};caseEdits[id].nd=newDate;}
+if(newJudge){if(!caseEdits[id])caseEdits[id]={};
+caseEdits[id].jn=newJudge;c.jn=newJudge;}
+count++;
 });
 localStorage.setItem("u4du",JSON.stringify(dateUpdates));if(typeof fbSave==="function")fbSave("u4du");
 localStorage.setItem("u4ce",JSON.stringify(caseEdits));if(typeof fbSave==="function")fbSave("u4ce");
@@ -925,7 +934,7 @@ renderBulkList();renderDB();renderC();
 function renderNC(){
 var h='<div class="fb2"><h3>&#10133; Add New Case / Fresh Matter</h3>';
 h+='<p style="font-size:11px;color:var(--tx2);margin-bottom:10px">Add new cases to be filed. Auto-saved to your app.</p>';
-var fields=[{id:"nc_pn",l:"Party Name *",t:"text",p:"e.g. ABC Pvt Ltd"},{id:"nc_op",l:"Opposite Party *",t:"text",p:"e.g. XYZ Traders"},{id:"nc_pr",l:"Petitioner/Respondent",t:"select",opts:["PETITIONER","RESPONDENT"]},{id:"nc_ct",l:"Case Type",t:"select",opts:["138 NI ACT","CIVIL","CRIMINAL","ARBITRATION","CONSUMER","FAMILY","LABOUR","RERA","NCLT","NOTICE","EXECUTION","TRANSFER CERTIFICATE","PRE-MEDIATION APPLICATION","TM HEARING","OTHER"]},{id:"nc_cn",l:"Case No",t:"text",p:"After filing"},{id:"nc_fn",l:"Filing No",t:"text",p:"Filing ref"},{id:"nc_crn",l:"CNR No",t:"text",p:"CNR"},{id:"nc_jn",l:"Judge Name",t:"text",p:"Judge"},{id:"nc_cr",l:"Court Room",t:"text",p:"Court"},{id:"nc_nd",l:"Next Hearing Date",t:"date",p:""},{id:"nc_ld",l:"Last Hearing Date",t:"date",p:""},{id:"nc_ar",l:"AR Name",t:"text",p:"AR"},{id:"nc_arn",l:"AR Number",t:"text",p:"AR Phone"},{id:"nc_cc",l:"Customer Code",t:"text",p:"Code"},{id:"nc_nop",l:"Opp Phone",t:"text",p:"Phone"},{id:"nc_eop",l:"Opp Email",t:"text",p:"Email"},{id:"nc_pa",l:"Principal Amt",t:"number",p:"0"},{id:"nc_ia",l:"Interest Amt",t:"number",p:"0"},{id:"nc_ta",l:"Total Amt",t:"number",p:"0"},{id:"nc_chq",l:"Cheque No",t:"text",p:"Cheque"},{id:"nc_nr",l:"Notice Ref",t:"text",p:"Ref"},{id:"nc_dln",l:"Notice Date",t:"date",p:""},{id:"nc_st",l:"Status",t:"text",p:"FRESH MATTER"}];
+var fields=[{id:"nc_pn",l:"Party Name *",t:"text",p:"e.g. ABC Pvt Ltd"},{id:"nc_op",l:"Opposite Party *",t:"text",p:"e.g. XYZ Traders"},{id:"nc_pr",l:"Petitioner/Respondent",t:"select",opts:["PETITIONER","RESPONDENT"]},{id:"nc_ct",l:"Case Type",t:"select",opts:["138 NI ACT","CIVIL","CRIMINAL","ARBITRATION","CONSUMER","FAMILY","LABOUR","RERA","NCLT","NOTICE","EXECUTION","TRANSFER CERTIFICATE","PRE-MEDIATION APPLICATION","TM HEARING","OTHER"]},{id:"nc_cn",l:"Case No",t:"text",p:"After filing"},{id:"nc_fn",l:"Filing No",t:"text",p:"Filing ref"},{id:"nc_crn",l:"CNR No",t:"text",p:"CNR"},{id:"nc_jn",l:"Judge Name",t:"text",p:"Judge"},{id:"nc_cr",l:"Court Room",t:"text",p:"Court"},{id:"nc_crt",l:"Court Name",t:"text",p:"Court Name (e.g. Saket District Court)"},{id:"nc_nd",l:"Next Hearing Date",t:"date",p:""},{id:"nc_ld",l:"Last Hearing Date",t:"date",p:""},{id:"nc_ar",l:"AR Name",t:"text",p:"AR"},{id:"nc_arn",l:"AR Number",t:"text",p:"AR Phone"},{id:"nc_cc",l:"Customer Code",t:"text",p:"Code"},{id:"nc_nop",l:"Opp Phone",t:"text",p:"Phone"},{id:"nc_eop",l:"Opp Email",t:"text",p:"Email"},{id:"nc_pa",l:"Principal Amt",t:"number",p:"0"},{id:"nc_ia",l:"Interest Amt",t:"number",p:"0"},{id:"nc_ta",l:"Total Amt",t:"number",p:"0"},{id:"nc_chq",l:"Cheque No",t:"text",p:"Cheque"},{id:"nc_nr",l:"Notice Ref",t:"text",p:"Ref"},{id:"nc_dln",l:"Notice Date",t:"date",p:""},{id:"nc_st",l:"Status",t:"text",p:"FRESH MATTER"}];
 h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
 fields.forEach(function(f){h+='<div class="fg">';h+='<label>'+f.l+'</label>';if(f.t==="select"){h+='<select id="'+f.id+'">';f.opts.forEach(function(o){h+='<option>'+o+'</option>'});h+='</select>';}else if(f.id==="nc_pn"||f.id==="nc_op"){h+='<div class="ac-wrap"><input type="text" id="'+f.id+'" placeholder="'+f.p+'" autocomplete="off" oninput="acShow(this,\''+f.id+'\')" onfocus="acShow(this,\''+f.id+'\')"><div id="ac_'+f.id+'" class="ac-list" style="display:none"></div></div>';}else{h+='<input type="'+f.t+'" id="'+f.id+'" placeholder="'+f.p+'">';}h+='</div>';});
 h+='</div><div style="margin-top:14px;display:flex;gap:8px">';
@@ -943,7 +952,7 @@ if(!pn||!op){alert("Party Name and Opposite Party are required!");return}
 var cnrVal=$("nc_crn").value.trim();
 if(cnrVal){var dupCNR=cases.find(function(c){return(c.crn||"").trim().toLowerCase()===cnrVal.toLowerCase();});if(dupCNR){if(!confirm("\u26A0\uFE0F A case with CNR \""+cnrVal+"\" already exists:\n"+dupCNR.sn+". "+dupCNR.pn+" vs "+dupCNR.op+"\n\nAdd anyway?"))return;}}
 var nextId="NC"+(newCases.length+1).toString().padStart(4,"0");var nextSN=cases.length+1;
-var nc={id:nextId,sn:nextSN,cn:$("nc_cn").value.trim(),pn:pn,pr:$("nc_pr").value,oa:$("nc_oa").value.trim(),on:$("nc_on").value.trim(),no:$("nc_no").value.trim(),ar:$("nc_ar").value.trim(),arn:$("nc_arn").value.trim(),cc:$("nc_cc").value.trim(),op:op,opa:$("nc_opa").value.trim(),sta:$("nc_sta").value.trim(),nop:$("nc_nop").value.trim(),eop:$("nc_eop").value.trim(),pa:parseFloat($("nc_pa").value)||0,ia:parseFloat($("nc_ia").value)||0,ta:parseFloat($("nc_ta").value)||0,ra:0,chq:$("nc_chq").value.trim(),ct:$("nc_ct").value,fn:$("nc_fn").value.trim(),crn:$("nc_crn").value.trim(),jn:$("nc_jn").value.trim(),cr:$("nc_cr").value.trim(),ld:$("nc_ld").value||"",nd:$("nc_nd").value||"",nr:$("nc_nr").value.trim(),dln:$("nc_dln").value||"",st:$("nc_st").value.trim()||"FRESH MATTER",cmp:$("nc_cmp").value.trim(),dcmp:"",cs:$("nc_cs").value.trim()};
+var nc={id:nextId,sn:nextSN,cn:$("nc_cn").value.trim(),pn:pn,pr:$("nc_pr").value,oa:$("nc_oa").value.trim(),on:$("nc_on").value.trim(),no:$("nc_no").value.trim(),ar:$("nc_ar").value.trim(),arn:$("nc_arn").value.trim(),cc:$("nc_cc").value.trim(),op:op,opa:$("nc_opa").value.trim(),sta:$("nc_sta").value.trim(),nop:$("nc_nop").value.trim(),eop:$("nc_eop").value.trim(),pa:parseFloat($("nc_pa").value)||0,ia:parseFloat($("nc_ia").value)||0,ta:parseFloat($("nc_ta").value)||0,ra:0,chq:$("nc_chq").value.trim(),ct:$("nc_ct").value,fn:$("nc_fn").value.trim(),crn:$("nc_crn").value.trim(),jn:$("nc_jn").value.trim(),cr:$("nc_cr").value.trim(),crt:$("nc_crt").value.trim(),ld:$("nc_ld").value||"",nd:$("nc_nd").value||"",nr:$("nc_nr").value.trim(),dln:$("nc_dln").value||"",st:$("nc_st").value.trim()||"FRESH MATTER",cmp:$("nc_cmp").value.trim(),dcmp:"",cs:$("nc_cs").value.trim()};
 cases.push(nc);newCases.push(nc);localStorage.setItem("u4nc",JSON.stringify(newCases));if(typeof fbSave==="function")fbSave("u4nc");
 alert("Case added! Total: "+cases.length);clearNCForm();renderNC();renderDB();renderC();
 }
