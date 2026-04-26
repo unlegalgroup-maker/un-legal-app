@@ -900,7 +900,7 @@ h+='<input type="text" id="ntc-srch" placeholder="&#128269; Search party, ref no
 h+='<select id="ntc-sf" onchange="renderNotices()" style="padding:8px 12px;border-radius:8px;border:1px solid var(--bd);font-size:13px;cursor:pointer">';
 ["All Status","Sent","Reply Received","No Reply / Expired","Filed in Court","Settled / Resolved","Fresh Matter"].forEach(function(s){h+='<option'+(sf===s?" selected":"")+'>'+s+'</option>';});
 h+='</select>';
-h+='<button class="btn bp" onclick="go('newc')" style="white-space:nowrap">&#43; Add Notice</button>';
+h+='<button class="btn bp" onclick="go(&apos;newc&apos;)" style="white-space:nowrap">&#43; Add Notice</button>';
 h+='</div>';
 if(notices.length===0){h+='<div style="text-align:center;padding:40px;color:var(--tx2)">No notices found. Use Add New Case and set Case Type = NOTICE.</div></div>';$("pg-ntc").innerHTML=h;return;}
 h+='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">';
