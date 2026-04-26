@@ -127,6 +127,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <div class="nv">
 <a class="ni a" onclick="go('dash')">&#128202; Dashboard</a>
 <a class="ni" onclick="go('cases')">&#128193; All Cases <span class="c">1652</span></a>
+<a class="ni" onclick="go('ntc')">&#128140; Notices <span class="c" id="ntc-cnt">—</span></a>
 <a class="ni" onclick="go('hear')">&#128197; Hearings Calendar</a>
 <a class="ni" onclick="go('cl')">&#9878;&#65039; Cause List</a>
 <a class="ni" onclick="go('nodt')">&#9888;&#65039; No-Date Cases <span class="c">628</span></a>
@@ -158,6 +159,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <div class="ct">
 <div id="pg-dash" class="pg a"></div>
 <div id="pg-cases" class="pg"></div>
+<div id="pg-ntc" class="pg"></div>
 <div id="pg-hear" class="pg"></div>
 <div id="pg-cl" class="pg"></div>
 <div id="pg-nodt" class="pg"></div>
@@ -209,9 +211,9 @@ document.querySelectorAll(".pg").forEach(function(x){x.classList.remove("a")});
 $("pg-"+p).classList.add("a");
 document.querySelectorAll(".ni").forEach(function(x){x.classList.remove("a")});
 if(event&&event.target)event.target.classList.add("a");
-var T={dash:"Dashboard",cases:"All Cases ("+cases.length+")",hear:"Hearings Calendar",cl:"Cause List",nodt:"No-Date Cases",task:"Daily Tasks",ord:"Orders & Files",comm:"Communications",crem:"Client Reminders",newc:"Add New Case / Fresh Matter",bulk:"Bulk Update",share:"Share & Download"};
+var T={dash:"Dashboard",cases:"All Cases ("+cases.length+")",hear:"Hearings Calendar",cl:"Cause List",nodt:"No-Date Cases",task:"Daily Tasks",ord:"Orders & Files",comm:"Communications",crem:"Client Reminders",newc:"Add New Case / Fresh Matter",bulk:"Bulk Update",ntc:"Notices",share:"Share & Download"};
 $("pt").textContent=T[p]||p;
-if(p==="hear")renderH();if(p==="cl")buildCLD();if(p==="nodt")renderND();if(p==="ord")renderO();if(p==="comm")renderCM();if(p==="crem")renderCR();if(p==="newc")renderNC();if(p==="bulk")renderBulk();if(p==="share")renderShare();
+if(p==="hear")renderH();if(p==="cl")buildCLD();if(p==="nodt")renderND();if(p==="ord")renderO();if(p==="comm")renderCM();if(p==="crem")renderCR();if(p==="newc")renderNC();if(p==="bulk")renderBulk();if(p==="ntc")renderNotices();if(p==="share")renderShare();
 }
 
 // ===== DASHBOARD =====
@@ -270,6 +272,7 @@ function sendWAW(n){var ph=n===1?PH1:PH2;window.open("https://wa.me/91"+ph+"?tex
 
 // ===== CASES =====
 function renderC(){
+var _ntcB=$("ntc-cnt");if(_ntcB&&window.cases)_ntcB.textContent=(window.cases).filter(function(c){return(c.ct||"").toUpperCase()==="NOTICE";}).length;
 var ctOpts=["All Types","138 NI ACT","CIVIL","CRIMINAL","ARBITRATION","CONSUMER","FAMILY","LABOUR","RERA","NCLT","NOTICE","EXECUTION","TRANSFER CERTIFICATE","PRE-MEDIATION APPLICATION","TM HEARING","OTHER"];
 var stOpts=["All Status","FRESH MATTER","IN PROGRESS","DISPOSED","STAYED","PART HEARD","PUT UP FOR ARGUMENTS","PUT UP FOR FINAL ARGUMENTS","ADJOURNED","SETTLED"];
 var h='<div class="tl" style="flex-wrap:wrap;gap:8px">';
@@ -881,6 +884,52 @@ listEl.innerHTML=matches.map(function(m,i){return'<div onmousedown="var el=docum
 listEl.style.display="block";
 }
 
+function renderNotices(){
+var notices=(window.cases||[]).filter(function(c){return(c.ct||"").toUpperCase()==="NOTICE";});
+notices=notices.map(function(c){var e=window.caseEdits&&window.caseEdits[c.id]?window.caseEdits[c.id]:{};return Object.assign({},c,e);});
+var badge=$("ntc-cnt");if(badge)badge.textContent=notices.length;
+var q=(document.getElementById("ntc-srch")||{value:""}).value.trim().toLowerCase();
+var sf=(document.getElementById("ntc-sf")||{value:"All Status"}).value;
+if(q)notices=notices.filter(function(c){return[c.pn,c.op,c.nr,c.opa,c.nop||""].join(" ").toLowerCase().indexOf(q)>=0;});
+if(sf&&sf!=="All Status")notices=notices.filter(function(c){return(c.st||"").toLowerCase().indexOf(sf.toLowerCase())>=0;});
+var h='<div class="ab">';
+h+='<h3>&#128140; Notices <span style="font-size:13px;color:var(--tx2);">('+notices.length+')</span></h3>';
+h+='<p style="font-size:11px;color:var(--tx2);margin-bottom:12px">Pre-litigation notice tracker. Click any row to open the case. Add New Case → select Case Type = NOTICE.</p>';
+h+='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center">';
+h+='<input type="text" id="ntc-srch" placeholder="&#128269; Search party, ref no, phone..." value="'+q+'" oninput="clearTimeout(window._ntcT);window._ntcT=setTimeout(renderNotices,350)" style="padding:8px 12px;border-radius:8px;border:1px solid var(--bd);font-size:13px;flex:1;min-width:180px">';
+h+='<select id="ntc-sf" onchange="renderNotices()" style="padding:8px 12px;border-radius:8px;border:1px solid var(--bd);font-size:13px;cursor:pointer">';
+["All Status","Sent","Reply Received","No Reply / Expired","Filed in Court","Settled / Resolved","Fresh Matter"].forEach(function(s){h+='<option'+(sf===s?" selected":"")+'>'+s+'</option>';});
+h+='</select>';
+h+='<button class="btn bp" onclick="go('newc')" style="white-space:nowrap">&#43; Add Notice</button>';
+h+='</div>';
+if(notices.length===0){h+='<div style="text-align:center;padding:40px;color:var(--tx2)">No notices found. Use Add New Case and set Case Type = NOTICE.</div></div>';$("pg-ntc").innerHTML=h;return;}
+h+='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">';
+h+='<thead><tr style="background:var(--nv);color:#fff;text-align:left">';
+['#','Party Name','Opposite Party','Opp Address / Phone','Ref No','Notice Sent','Reply By / Next Date','Amount','Status','AR'].forEach(function(col){h+='<th style="padding:8px 10px;white-space:nowrap">'+col+'</th>';});
+h+='</tr></thead><tbody>';
+var FX=function(v){return v||'—';};
+var FD=function(v){if(!v||v==='—')return'—';try{var d=new Date(v);return isNaN(d)?v:d.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});}catch(e){return v;}};
+var SC=function(s){var m={'sent':'#2196f3','reply received':'#4caf50','no reply':'#f44336','expired':'#f44336','filed in court':'#9c27b0','settled':'#4caf50','resolved':'#4caf50','fresh matter':'#888'};var k=(s||'').toLowerCase();for(var key in m)if(k.indexOf(key)>=0)return m[key];return'#888';};
+notices.forEach(function(c,i){
+var bg=i%2===0?'background:var(--bg)':'background:rgba(0,0,0,0.025)';
+var addr=[c.opa,c.nop].filter(Boolean).join(' | ');
+var overdue=c.nd&&new Date(c.nd)<new Date()?'color:#e53935':'';
+h+='<tr style="'+bg+';border-bottom:1px solid var(--bd);cursor:pointer" onclick="opM('+c.sn+')">';
+h+='<td style="padding:8px 10px;color:var(--tx2);white-space:nowrap">'+c.sn+'.</td>';
+h+='<td style="padding:8px 10px;font-weight:600;color:var(--nv)">'+FX(c.pn)+'</td>';
+h+='<td style="padding:8px 10px">'+FX(c.op)+'</td>';
+h+='<td style="padding:8px 10px;color:var(--tx2);font-size:11px;max-width:200px">'+FX(addr)+'</td>';
+h+='<td style="padding:8px 10px;font-family:monospace;color:#1565c0;white-space:nowrap">'+FX(c.nr)+'</td>';
+h+='<td style="padding:8px 10px;white-space:nowrap">'+FD(c.dln)+'</td>';
+h+='<td style="padding:8px 10px;white-space:nowrap;'+overdue+'">'+FD(c.nd)+'</td>';
+h+='<td style="padding:8px 10px;text-align:right;white-space:nowrap">'+(c.ta?'₹'+Number(c.ta).toLocaleString('en-IN'):'—')+'</td>';
+h+='<td style="padding:8px 10px"><span style="background:'+SC(c.st)+';color:#fff;padding:3px 8px;border-radius:12px;font-size:10px;white-space:nowrap">'+FX(c.st)+'</span></td>';
+h+='<td style="padding:8px 10px;color:var(--tx2)">'+FX(c.ar)+'</td>';
+h+='</tr>';
+});
+h+='</tbody></table></div></div>';
+$("pg-ntc").innerHTML=h;
+}
 function renderBulk(){
 var h='<div class="ab"><h3>&#128197; Bulk Update</h3>';
 h+='<p style="font-size:11px;color:var(--tx2);margin-bottom:12px">Search and select multiple cases, then set one date to update all at once.</p>';
