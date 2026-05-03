@@ -130,7 +130,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <a class="ni" onclick="go('ntc')">&#128140; Notices <span class="c" id="ntc-cnt">—</span></a>
 <a class="ni" onclick="go('hear')">&#128197; Hearings Calendar</a>
 <a class="ni" onclick="go('cl')">&#9878;&#65039; Cause List</a>
-<a class="ni" onclick="go('nodt')">&#9888;&#65039; No-Date Cases <span class="c">628</span></a>
+<a class="ni" onclick="go('nodt')">&#9888;&#65039; No-Date Cases <span class="c" id="nd-badge">0</span></a>
 <a class="ni" onclick="go('task')">&#9989; Daily Tasks</a>
 <a class="ni" onclick="go('ord')">&#128220; Orders &amp; Files</a>
 <a class="ni" onclick="go('comm')">&#128172; Communications</a>
@@ -681,6 +681,8 @@ h+='</table>';$("clC").innerHTML=h;
 }
 
 // ===== NO-DATE =====
+  function updNDBadge(){try{var n=cases.filter(function(c){return !isVD(c.nd)}).length;var el=document.getElementById('nd-badge');if(el)el.textContent=n;}catch(e){}}
+  setInterval(updNDBadge,1000);
 function renderND(){
 var ndc=cases.filter(function(c){return !isVD(c.nd)});
 var h='<div class="ab"><h3>&#9888;&#65039; Cases Without Hearing Date <span class="cn">'+ndc.length+'</span></h3>';
