@@ -369,13 +369,13 @@ h+='<div style="font-weight:600;font-size:12px;color:var(--nv);margin-bottom:8px
 var noteKey=c.id||c.sn;var existingNote=(window.caseNotes&&window.caseNotes[noteKey])||"";
 h+='<textarea id="cn_note" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--bd);font-size:12px;resize:vertical;min-height:80px;font-family:inherit" placeholder="Add internal notes for this case...">'+existingNote.replace(/</g,"&lt;").replace(/>/g,"&gt;")+'</textarea>';
 h+='<div style="display:flex;gap:8px;margin-top:8px">';
-h+='<button class="btn bp" onclick="saveCaseNote('+c.sn+')" style="padding:6px 16px;font-size:11px">&#10003; Save Note</button>';
-if(existingNote)h+='<button class="btn bg2" onclick="deleteCaseNote('+c.sn+')" style="padding:6px 16px;font-size:11px">&#128465; Clear Note</button>';
+h+='<button class="btn bp" onclick="saveCaseNote(\''+c.sn+'\')" style="padding:6px 16px;font-size:11px">&#10003; Save Note</button>';
+if(existingNote)h+='<button class="btn bg2" onclick="deleteCaseNote(\''+c.sn+'\')" style="padding:6px 16px;font-size:11px">&#128465; Clear Note</button>';
 h+='</div>';
 h+='</div>';
 h+='<div style="margin-top:14px;display:flex;gap:8px;justify-content:center">';
 h+='<button class="btn bp" onclick="editMode=true;renderModal(cases.find(function(x){return x.id===editCaseId}))" style="padding:10px 28px;font-size:12px">&#9998; Edit All Details</button>';
-h+='<button class="btn" onclick="deleteCase('+c.sn+')" style="padding:10px 28px;font-size:12px;background:#e53935;color:#fff;border:none;border-radius:8px;cursor:pointer">&#128465; Delete Case</button>';
+h+='<button class="btn" onclick="deleteCase(\''+c.sn+'\')" style="padding:10px 28px;font-size:12px;background:#e53935;color:#fff;border:none;border-radius:8px;cursor:pointer">&#128465; Delete Case</button>';
 h+='</div>';
 }else{
 // EDIT MODE
@@ -433,7 +433,7 @@ alert("All changes saved! Updates will reflect across all sections.");
 }
 
 function saveCaseNote(sn){
-var c=cases.find(function(x){return x.sn===sn});if(!c)return;
+var c=cases.find(function(x){return String(x.sn)===String(sn)});if(!c)return;
 var noteKey=c.id||c.sn;
 var el=document.getElementById("cn_note");if(!el)return;
 var txt=el.value.trim();
@@ -445,7 +445,7 @@ renderModal(c);
 renderC();
 }
 function deleteCaseNote(sn){
-var c=cases.find(function(x){return x.sn===sn});if(!c)return;
+var c=cases.find(function(x){return String(x.sn)===String(sn)});if(!c)return;
 var noteKey=c.id||c.sn;
 if(window.caseNotes)delete window.caseNotes[noteKey];
 localStorage.setItem("u4notes",JSON.stringify(window.caseNotes||{}));
@@ -457,7 +457,7 @@ function deleteCase(sn){
 var pwd=prompt("Enter admin password to delete this case:");
 if(pwd===null)return;
 if(pwd!=="Parth@2026"){alert("\u274C Wrong password. You are not authorised to delete cases.");return;}
-var c=cases.find(function(x){return x.sn===sn});
+var c=cases.find(function(x){return String(x.sn)===String(sn)});
 if(!c)return;
 if(!confirm("Are you sure you want to permanently delete case:\n"+c.sn+". "+c.pn+" vs "+c.op+"\n\nThis cannot be undone!"))return;
 // Remove from cases array
@@ -504,7 +504,7 @@ h+='Last: '+FD(c.ld)+' | Status: '+F(c.st);
 h+='<div style="margin-top:6px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">';
 h+='<span style="font-size:10px;color:var(--nv);font-weight:600">&#128197; Change Date:</span>';
 h+='<input type="date" class="si" value="'+c.nd+'" style="font-size:11px;padding:3px 6px;width:150px" onchange="chgHDate('+c.sn+',this.value)">';
-h+='<button onclick="disposeCase('+c.sn+')" style="margin-left:8px;padding:3px 10px;background:#e74c3c;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:11px">Disposed off case</button>';
+h+='<button onclick="disposeCase(\''+c.sn+'\')" style="margin-left:8px;padding:3px 10px;background:#e74c3c;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:11px">Disposed off case</button>';
 h+='</div></div>'});
 h+='</div>'});
 $("pg-hear").innerHTML=tb+(h||'<div style="text-align:center;padding:30px;color:var(--tx2)">No hearings</div>');
@@ -577,7 +577,7 @@ h+='Last: '+FD(c.ld)+' | Status: '+F(c.st);
 h+='<div style="margin-top:6px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">';
 h+='<span style="font-size:10px;color:var(--nv);font-weight:600">&#128197; Change Date:</span>';
 h+='<input type="date" class="si" value="'+c.nd+'" style="font-size:11px;padding:3px 6px;width:150px" onchange="chgHDate('+c.sn+',this.value)">';
-h+='<button onclick="disposeCase('+c.sn+')" style="margin-left:8px;padding:3px 10px;background:#e74c3c;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:11px">Disposed off case</button>';
+h+='<button onclick="disposeCase(\''+c.sn+'\')" style="margin-left:8px;padding:3px 10px;background:#e74c3c;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:11px">Disposed off case</button>';
 h+='</div></div>';});
 h+='</div>';
 el.innerHTML=h;
@@ -603,7 +603,7 @@ alert("Date changed: "+F(c.pn)+" vs "+F(c.op)+"\nOld: "+FD(oldDate)+" \u2192 New
 
 // ===== CAUSE LIST =
 function disposeCase(sn){
-var c=cases.find(function(x){return x.sn===sn});
+var c=cases.find(function(x){return String(x.sn)===String(sn)});
 if(!c)return;
 if(!confirm("Dispose this case?\n\n"+c.pn+" vs "+c.on+"\n\nStatus will be set to 'Disposed off case' and moved to No-Date Cases."))return;
 var oldNd=c.nd;
