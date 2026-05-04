@@ -588,7 +588,7 @@ if(hols[ds]){delete hols[ds];}else{hols[ds]=1;}
 localStorage.setItem('u4ch',JSON.stringify(hols));if(typeof fbSave==="function")fbSave("u4ch");
 renderH();
 }
-function chgHDate(sn,newDate){
+function chgHDate(sn,newDate){sn=String(sn);while(sn.length<4)sn='0'+sn;
 if(!newDate){alert("Please select a valid date");return}
 var c=cases.find(function(x){return x.sn===sn});if(!c)return;
 var oldDate=c.nd;c.ld=oldDate;c.nd=newDate;
