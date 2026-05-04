@@ -311,7 +311,7 @@ var st2=(cp-1)*PP;var pg=fl.slice(st2,st2+PP);
 h+='<div class="cg">';
 pg.forEach(function(c){
 var noteKey=c.id||c.sn;var hasNote=window.caseNotes&&window.caseNotes[noteKey]&&window.caseNotes[noteKey].trim();
-h+='<div class="cc" onclick="opM('+c.sn+')">';
+h+='<div class="cc" onclick="opM(\''+c.sn+'\')">';
 h+='<div class="hd"><span class="ti">'+c.sn+'. '+F(c.pn)+'</span><span style="display:flex;gap:6px;align-items:center"><span class="bd2">'+F(c.ct)+'</span>'+(hasNote?'<span style="font-size:9px;background:#e3f2fd;color:#1565c0;padding:2px 6px;border-radius:10px;font-weight:600">&#128221; Notes</span>':'')+'</span></div>';
 h+='<div class="bd">';
 h+='<div class="rw"><span class="k">Vs</span><span class="vl">'+F(c.op)+'</span></div>';
@@ -348,7 +348,7 @@ var editMode=false;
 var editCaseId="";
 
 function opM(sn){
-var c=cases.find(function(x){return x.sn===sn});if(!c)return;
+var c=cases.find(function(x){return String(x.sn)===String(sn)});if(!c)return;
 editCaseId=c.id;
 editMode=false;
 renderModal(c);
@@ -694,7 +694,7 @@ h+='<td><select class="si" style="font-size:10px;padding:3px;width:120px" onchan
 var statuses=["Pending","Disposed","Decided","Dismissed","Closed","Transferred","Stayed","Adjourned","Withdrawn","Settled","Compromised","Contested","Uncontested","Referred","Listed","Not Listed"];
 statuses.forEach(function(s){h+='<option value="'+s+'"'+(c.st===s?" selected":"")+'>'+s+'</option>'});
 h+='</select></td>';
-h+='<td style="white-space:nowrap"><button class="btn bp bsm" onclick="opM('+c.sn+')" style="margin-right:4px">&#128197; Set Date</button></td></tr>'});
+h+='<td style="white-space:nowrap"><button class="btn bp bsm" onclick="opM(\''+c.sn+'\')" style="margin-right:4px">&#128197; Set Date</button></td></tr>'});
 h+='</table>';$("pg-nodt").innerHTML=h;
 }
 function updNDStatus(sn,val){
@@ -916,7 +916,7 @@ notices.forEach(function(c,i){
 var bg=i%2===0?'background:var(--bg)':'background:rgba(0,0,0,0.025)';
 var addr=[c.opa,c.nop].filter(Boolean).join(' | ');
 var overdue=c.nd&&new Date(c.nd)<new Date()?'color:#e53935':'';
-h+='<tr style="'+bg+';border-bottom:1px solid var(--bd);cursor:pointer" onclick="opM('+c.sn+')">';
+h+='<tr style="'+bg+';border-bottom:1px solid var(--bd);cursor:pointer" onclick="opM(\''+c.sn+'\')">';
 h+='<td style="padding:8px 10px;color:var(--tx2);white-space:nowrap">'+c.sn+'.</td>';
 h+='<td style="padding:8px 10px;font-weight:600;color:var(--nv)">'+FX(c.pn)+'</td>';
 h+='<td style="padding:8px 10px">'+FX(c.op)+'</td>';
