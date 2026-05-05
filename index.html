@@ -225,7 +225,7 @@ var upcoming=cases.filter(function(c){return isVD(c.nd)&&c.nd>=ts});
 var todayC=cases.filter(function(c){return c.nd===ts});
 var tmC=cases.filter(function(c){return c.nd===tm});
 var wkC=cases.filter(function(c){return isVD(c.nd)&&c.nd>tm&&c.nd<=wkS});
-var tc=0,rc=0,dc=0;cases.forEach(function(c){tc+=(c.ta||0);rc+=(c.ra||0);if(c.st&&c.st.indexOf('Disposed')>-1)dc++});
+var tc=0,rc=0,dc=0;cases.forEach(function(c){tc+=(c.ta||0);rc+=(c.ra||0);var _st=(window.caseEdits&&window.caseEdits[c.id]&&window.caseEdits[c.id].st)||c.st||"";if(_st&&_st.indexOf("Disposed")>-1)dc++;});
 var h='<div class="sts">';
 h+='<div class="st"><div class="l">Total Cases</div><div class="v">'+cases.length+'</div></div>';
 h+='<div class="st" style="border-left-color:var(--gn)"><div class="l">Today</div><div class="v">'+todayC.length+'</div></div>';
@@ -408,37 +408,13 @@ h+='</div>';
 $("mbd").innerHTML=h;$("cm").classList.add("sh");
 }
 
-function saveAllEdits(){
-var c=cases.find(function(x){return x.id===editCaseId});
-if(!c)return;
-var editFields=["cn","pn","op","ct","pr","crn","fn","jn","cr","crt","nd","ld","st","ar","arn","on","no","oa","cc","opa","sta","nop","eop","pa","ia","ta","ra","chq","nr","dln","spd","trk","wad","emd","cmp","dcmp","cs"];
-var changes={};
-editFields.forEach(function(k){
-var el=$("ed_"+k);if(!el)return;
-var newVal=el.value;
-if(isMF(k))newVal=parseFloat(newVal)||0;
-if(String(c[k])!==String(newVal)){
-c[k]=newVal;
-changes[k]=newVal;
-}
-});
-
-// Also update dateUpdates for nd specifically
-if(changes.nd!==undefined){
-dateUpdates[c.id]=changes.nd;
-localStorage.setItem("u4du",JSON.stringify(dateUpdates));if(typeof fbSave==="function")fbSave("u4du");
-}
-
-// Save all edits
+function saveAllEdits(){var c=cases.find(function(x){return x.id===editCaseId});if(!c)return;var editFields=["cn","pn","op","ct","pr","crn","fn","jn","crt","nd","ld","st","ar","arn","on","no","oa","cc","opa","sta","nop","eop","pa","ia","ta","ra","ch","cs","cr","trk","wad","emd","spd","cmp","dcmp","nr","dln","chq"];var changes={};editFields.forEach(function(k){var el=$("ed_"+k);if(!el)return;var newVal=el.value;if(isMF(k))newVal=parseFloat(newVal)||0;if(String(c[k])!==String(newVal)){c[k]=newVal;changes[k]=newVal;}});
+if(changes.nd!==undefined){dateUpdates[c.id]=changes.nd;localStorage.setItem("u4du",JSON.stringify(dateUpdates));if(typeof fbSave==="function")fbSave("u4du");}
 if(!caseEdits[c.id])caseEdits[c.id]={};
-Object.keys(changes).forEach(function(k){caseEdits[c.id][k]=changes[k]});
+Object.keys(changes).forEach(function(k){if(k==="nd")return;caseEdits[c.id][k]=changes[k];});
+if(caseEdits[c.id].nd!==undefined)delete caseEdits[c.id].nd;
 localStorage.setItem("u4ce",JSON.stringify(caseEdits));if(typeof fbSave==="function")fbSave("u4ce");
-
-editMode=false;
-renderModal(c);
-renderDB();renderC();
-alert("All changes saved! Updates will reflect across all sections.");
-}
+editMode=false;renderModal(c);renderDB();renderC();alert("All changes saved! Updates will reflect across all sections.");}
 
 function saveCaseNote(sn){
 var c=cases.find(function(x){return String(x.sn)===String(sn)});if(!c)return;
@@ -600,10 +576,11 @@ function chgHDate(sn,newDate){sn=String(sn);while(sn.length<4)sn='0'+sn;
 if(!newDate){alert("Please select a valid date");return}
 var c=cases.find(function(x){return x.sn===sn});if(!c)return;
 var oldDate=c.nd;c.ld=oldDate;c.nd=newDate;
-if(!dateUpdates)dateUpdates={};
+if(typeof dateUpdates!=='object'||!dateUpdates)window.dateUpdates={};
 dateUpdates[c.id]=newDate;
 if(!caseEdits[c.id])caseEdits[c.id]={};
-caseEdits[c.id].nd=newDate;caseEdits[c.id].ld=oldDate;
+caseEdits[c.id].ld=oldDate;
+if(caseEdits[c.id].nd!==undefined)delete caseEdits[c.id].nd;
 try{localStorage.setItem("u4du",JSON.stringify(dateUpdates));if(typeof fbSave==="function")fbSave("u4du");localStorage.setItem("u4ce",JSON.stringify(caseEdits))}catch(e){}
 renderH();if(typeof fbSave==="function")fbSave("u4ce");renderDB();buildCLD();
 alert("Date changed: "+F(c.pn)+" vs "+F(c.op)+"\nOld: "+FD(oldDate)+" \u2192 New: "+FD(newDate));
@@ -1161,9 +1138,16 @@ setInterval(chkN,30*60000);
     const raw = localStorage.getItem(key);
     if (!raw) return;
     try {
-      const data = JSON.parse(raw);
+      let data = JSON.parse(raw);
+      if (key === "u4ce" && data && typeof data === "object" && !Array.isArray(data)) {
+        Object.keys(data).forEach(function(id){
+          if (data[id] && typeof data[id] === "object" && data[id].nd !== undefined) {
+            delete data[id].nd;
+          }
+        });
+        try { localStorage.setItem("u4ce", JSON.stringify(data)); } catch(_){}
+      }
       const payload = Array.isArray(data) ? { _arr: data } : data;
-      // Show saving indicator
       var _sb=document.getElementById("fb-sync-bar");
       if(_sb){_sb.style.display="block";_sb.style.background="linear-gradient(90deg,#1a2744,#2c3e50)";_sb.innerHTML="&#9679; Saving&hellip;";}
       setDoc(DOCS[key], payload, { merge: false }).then(function(){
@@ -1178,31 +1162,39 @@ setInterval(chkN,30*60000);
   };
 
   async function fbLoadAll() {
-    let anyUpdate = false;
-    for (const key in DOCS) {
+    var anyUpdate = false;
+    for (const key of Object.keys(DOCS)) {
       try {
         const snap = await getDoc(DOCS[key]);
         if (!snap.exists()) continue;
-        const data = snap.data();
-        let parsed;
-        if (data._arr !== undefined) {
-          parsed = data._arr;
-        } else {
-          const local = JSON.parse(localStorage.getItem(key) || "{}");
-          parsed = Object.assign({}, local, data);
+        const data = snap.data() || {};
+        if (key === "u4ce") {
+          Object.keys(data).forEach(function(id){
+            if (data[id] && typeof data[id] === "object" && data[id].nd !== undefined) {
+              delete data[id].nd;
+            }
+          });
         }
+        const local = JSON.parse(localStorage.getItem(key) || "{}");
+        if (key === "u4ce") {
+          Object.keys(local).forEach(function(id){
+            if (local[id] && typeof local[id] === "object" && local[id].nd !== undefined) {
+              delete local[id].nd;
+            }
+          });
+        }
+        const parsed = Object.assign({}, local, data);
+        if (key === "u4du") delete parsed._arr;
         localStorage.setItem(key, JSON.stringify(parsed));
         anyUpdate = true;
       } catch(e) { console.warn("fbLoad err for " + key, e.message); }
     }
     if (anyUpdate && typeof window.cases !== "undefined") {
-      // 1. Merge new cases (u4nc)
       const ncArr = JSON.parse(localStorage.getItem("u4nc") || "[]");
       window.cases = window.cases.filter(function(c) { return !String(c.id).startsWith("NC"); });
       ncArr.forEach(function(nc) {
         if (!window.cases.find(function(c) { return c.id === nc.id; })) window.cases.push(nc);
       });
-      // 2. RE-APPLY case edits from cloud to window.cases
       const ceCloud = JSON.parse(localStorage.getItem("u4ce") || "{}");
       window.caseEdits = ceCloud;
       Object.keys(ceCloud).forEach(function(id) {
@@ -1210,20 +1202,17 @@ setInterval(chkN,30*60000);
         if (c) {
           var ed = ceCloud[id];
           Object.keys(ed).forEach(function(k) {
-            // [FIX] Skip 'nd' - canonical nd lives in u4du (dateUpdates)
             if (k === "nd") return;
             c[k] = ed[k];
           });
         }
       });
-      // 3. RE-APPLY date updates from cloud to window.cases
       const duCloud = JSON.parse(localStorage.getItem("u4du") || "{}");
       window.dateUpdates = duCloud;
       Object.keys(duCloud).forEach(function(id) {
         var c = window.cases.find(function(x) { return x.id === id; });
         if (c && duCloud[id]) { c.nd = duCloud[id]; }
       });
-      // 4. Load case notes from cloud
       window.caseNotes = JSON.parse(localStorage.getItem("u4notes") || "{}");
       if (typeof renderDB === "function") renderDB();
       if (typeof renderC === "function") renderC();
@@ -1248,8 +1237,18 @@ setInterval(chkN,30*60000);
     });
     onSnapshot(DOCS.u4ce, function(snap) {
       if (!snap.exists()) return;
-      const cloud = snap.data();
+      const cloud = snap.data() || {};
+      Object.keys(cloud).forEach(function(id){
+        if (cloud[id] && typeof cloud[id] === "object" && cloud[id].nd !== undefined) {
+          delete cloud[id].nd;
+        }
+      });
       const local = JSON.parse(localStorage.getItem("u4ce") || "{}");
+      Object.keys(local).forEach(function(id){
+        if (local[id] && typeof local[id] === "object" && local[id].nd !== undefined) {
+          delete local[id].nd;
+        }
+      });
       const merged = Object.assign({}, local, cloud);
       localStorage.setItem("u4ce", JSON.stringify(merged));
       window.caseEdits = merged;
@@ -1259,13 +1258,11 @@ setInterval(chkN,30*60000);
           if (c) {
             var ed = merged[id];
             Object.keys(ed).forEach(function(k) {
-              // [FIX] Skip 'nd' from caseEdits - dateUpdates (u4du) is the source of truth for next-date
               if (k === "nd") return;
               c[k] = ed[k];
             });
           }
         });
-        // [FIX] Re-apply dateUpdates AFTER caseEdits to ensure canonical nd wins
         try {
           var __du = JSON.parse(localStorage.getItem("u4du") || "{}");
           Object.keys(__du).forEach(function(id) {
@@ -1276,6 +1273,8 @@ setInterval(chkN,30*60000);
       }
       if (typeof renderDB === "function") renderDB();
       if (typeof renderC === "function") renderC();
+      if (typeof renderH === "function") renderH();
+      if (typeof renderND === "function") renderND();
     });
     onSnapshot(DOCS.u4ch, function(snap) {
       if (!snap.exists()) return;
@@ -1298,13 +1297,10 @@ setInterval(chkN,30*60000);
       if (typeof window.orders !== "undefined") window.orders = arr;
     });
     onSnapshot(DOCS.u4du, function(snap) {
-      // [FIX] Listen for cross-device dateUpdates so 'nd' edits propagate everywhere
       if (!snap.exists()) return;
-      const cloud = snap.data();
+      const cloud = snap.data() || {};
       const local = JSON.parse(localStorage.getItem("u4du") || "{}");
-      // Cloud wins on conflicts (last-write-wins per id)
       const merged = Object.assign({}, local, cloud);
-      // Strip Firestore meta keys if any
       delete merged._arr;
       localStorage.setItem("u4du", JSON.stringify(merged));
       window.dateUpdates = merged;
