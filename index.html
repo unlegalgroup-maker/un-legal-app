@@ -191,8 +191,8 @@ var dateUpdates=JSON.parse(localStorage.getItem("u4du")||"{}");
 var newCases=JSON.parse(localStorage.getItem("u4nc")||"[]");
 var notifs=[];
 
-Object.keys(dateUpdates).forEach(function(id){var c=cases.find(function(x){return x.id===id});if(c)c.nd=dateUpdates[id]});
 newCases.forEach(function(nc){cases.push(nc)});
+Object.keys(dateUpdates).forEach(function(id){var c=cases.find(function(x){return x.id===id});if(c)c.nd=dateUpdates[id]});
 
 var LB={sn:"S.No",cn:"Case No",pn:"Party Name",op:"Opposite Party",ct:"Case Type",pr:"Pet/Resp",crn:"CNR No",fn:"Filing No",jn:"Judge Name",cr:"Court Room",crt:"Court Name",nd:"Next Hearing",ld:"Last Hearing",st:"Status",ar:"AR Name",arn:"AR Number",on:"Owner Name",no:"Owner Phone",oa:"Office Address",cc:"Customer Code",opa:"Opp Address",sta:"State",nop:"Opp Phone",eop:"Opp Email",pa:"Principal Amt",ia:"Interest Amt",ta:"Total Amt",ra:"Recovered",chq:"Cheque No",nr:"Notice Ref",dln:"Notice Date",spd:"Speed Post Date",trk:"Speed Post Tracking No",wad:"WhatsApp Sent Date",emd:"Email Sent Date",cmp:"Compliance",dcmp:"Compliance Date",cs:"Calling Status"};
 
