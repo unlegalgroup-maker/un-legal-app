@@ -192,7 +192,7 @@ var newCases=JSON.parse(localStorage.getItem("u4nc")||"[]");
 var notifs=[];
 
 newCases.forEach(function(nc){cases.push(nc)});
-Object.keys(dateUpdates).forEach(function(id){var c=cases.find(function(x){return x.id===id});if(c)c.nd=dateUpdates[id]});
+// [FIX] dateUpdates application moved below, AFTER caseEdits apply, so dateUpdates (canonical for nd) wins
 
 var LB={sn:"S.No",cn:"Case No",pn:"Party Name",op:"Opposite Party",ct:"Case Type",pr:"Pet/Resp",crn:"CNR No",fn:"Filing No",jn:"Judge Name",cr:"Court Room",crt:"Court Name",nd:"Next Hearing",ld:"Last Hearing",st:"Status",ar:"AR Name",arn:"AR Number",on:"Owner Name",no:"Owner Phone",oa:"Office Address",cc:"Customer Code",opa:"Opp Address",sta:"State",nop:"Opp Phone",eop:"Opp Email",pa:"Principal Amt",ia:"Interest Amt",ta:"Total Amt",ra:"Recovered",chq:"Cheque No",nr:"Notice Ref",dln:"Notice Date",spd:"Speed Post Date",trk:"Speed Post Tracking No",wad:"WhatsApp Sent Date",emd:"Email Sent Date",cmp:"Compliance",dcmp:"Compliance Date",cs:"Calling Status"};
 
@@ -341,8 +341,16 @@ window.caseNotes=JSON.parse(localStorage.getItem("u4notes")||"{}");
 // Apply saved case edits on load
 Object.keys(caseEdits).forEach(function(id){
 var c=cases.find(function(x){return x.id===id});
-if(c){var ed=caseEdits[id];Object.keys(ed).forEach(function(k){c[k]=ed[k]})}
+if(c){var ed=caseEdits[id];Object.keys(ed).forEach(function(k){
+  // [FIX] Skip 'nd' here - it's authoritative in dateUpdates (u4du); applying it here can revert newer date edits
+  if(k==="nd") return;
+  c[k]=ed[k];
+})}
 });
+// [FIX] Apply dateUpdates LAST so it wins for the 'nd' field (canonical store for next hearing date)
+Object.keys(dateUpdates).forEach(function(id){var c=cases.find(function(x){return x.id===id});if(c && dateUpdates[id])c.nd=dateUpdates[id]});
+// [FIX] Self-heal stale caseEdits[id].nd that contradict dateUpdates - prevents future regression
+(function(){var changed=false;Object.keys(dateUpdates).forEach(function(id){if(caseEdits[id] && caseEdits[id].nd && caseEdits[id].nd!==dateUpdates[id]){caseEdits[id].nd=dateUpdates[id];changed=true;}});if(changed){try{localStorage.setItem("u4ce",JSON.stringify(caseEdits));if(typeof fbSave==="function")fbSave("u4ce");}catch(e){}}})();
 
 var editMode=false;
 var editCaseId="";
@@ -1199,7 +1207,14 @@ setInterval(chkN,30*60000);
       window.caseEdits = ceCloud;
       Object.keys(ceCloud).forEach(function(id) {
         var c = window.cases.find(function(x) { return x.id === id; });
-        if (c) { var ed = ceCloud[id]; Object.keys(ed).forEach(function(k) { c[k] = ed[k]; }); }
+        if (c) {
+          var ed = ceCloud[id];
+          Object.keys(ed).forEach(function(k) {
+            // [FIX] Skip 'nd' - canonical nd lives in u4du (dateUpdates)
+            if (k === "nd") return;
+            c[k] = ed[k];
+          });
+        }
       });
       // 3. RE-APPLY date updates from cloud to window.cases
       const duCloud = JSON.parse(localStorage.getItem("u4du") || "{}");
@@ -1241,8 +1256,23 @@ setInterval(chkN,30*60000);
       if (typeof window.cases !== "undefined") {
         Object.keys(merged).forEach(function(id) {
           var c = window.cases.find(function(x) { return x.id === id; });
-          if (c) { var ed = merged[id]; Object.keys(ed).forEach(function(k) { c[k] = ed[k]; }); }
+          if (c) {
+            var ed = merged[id];
+            Object.keys(ed).forEach(function(k) {
+              // [FIX] Skip 'nd' from caseEdits - dateUpdates (u4du) is the source of truth for next-date
+              if (k === "nd") return;
+              c[k] = ed[k];
+            });
+          }
         });
+        // [FIX] Re-apply dateUpdates AFTER caseEdits to ensure canonical nd wins
+        try {
+          var __du = JSON.parse(localStorage.getItem("u4du") || "{}");
+          Object.keys(__du).forEach(function(id) {
+            var c = window.cases.find(function(x) { return x.id === id; });
+            if (c && __du[id]) c.nd = __du[id];
+          });
+        } catch(e){}
       }
       if (typeof renderDB === "function") renderDB();
       if (typeof renderC === "function") renderC();
@@ -1266,6 +1296,28 @@ setInterval(chkN,30*60000);
       const arr = (snap.data()._arr) || [];
       localStorage.setItem("u4o", JSON.stringify(arr));
       if (typeof window.orders !== "undefined") window.orders = arr;
+    });
+    onSnapshot(DOCS.u4du, function(snap) {
+      // [FIX] Listen for cross-device dateUpdates so 'nd' edits propagate everywhere
+      if (!snap.exists()) return;
+      const cloud = snap.data();
+      const local = JSON.parse(localStorage.getItem("u4du") || "{}");
+      // Cloud wins on conflicts (last-write-wins per id)
+      const merged = Object.assign({}, local, cloud);
+      // Strip Firestore meta keys if any
+      delete merged._arr;
+      localStorage.setItem("u4du", JSON.stringify(merged));
+      window.dateUpdates = merged;
+      if (typeof window.cases !== "undefined") {
+        Object.keys(merged).forEach(function(id) {
+          var c = window.cases.find(function(x) { return x.id === id; });
+          if (c && merged[id]) c.nd = merged[id];
+        });
+      }
+      if (typeof renderDB === "function") renderDB();
+      if (typeof renderC === "function") renderC();
+      if (typeof renderH === "function") renderH();
+      if (typeof renderND === "function") renderND();
     });
     onSnapshot(DOCS.u4notes, function(snap) {
       if (!snap.exists()) return;
