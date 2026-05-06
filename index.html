@@ -352,6 +352,18 @@ Object.keys(dateUpdates).forEach(function(id){var c=cases.find(function(x){retur
 // [FIX] Self-heal stale caseEdits[id].nd that contradict dateUpdates - prevents future regression
 (function(){var changed=false;Object.keys(dateUpdates).forEach(function(id){if(caseEdits[id] && caseEdits[id].nd && caseEdits[id].nd!==dateUpdates[id]){caseEdits[id].nd=dateUpdates[id];changed=true;}});if(changed){try{localStorage.setItem("u4ce",JSON.stringify(caseEdits));if(typeof fbSave==="function")fbSave("u4ce");}catch(e){}}})();
 
+/* [FIX-COUNT] Cleanup orphan caseEdits and dateUpdates whose case is no longer in the cases array. Single source of truth for counts. */
+(function(){
+  try {
+    var validIds = {}; (window.cases || []).forEach(function(c){ if (c && c.id) validIds[c.id] = true; });
+    var ceChanged = false;
+    Object.keys(caseEdits || {}).forEach(function(id){ if (!validIds[id]) { delete caseEdits[id]; ceChanged = true; } });
+    var duChanged = false;
+    Object.keys(dateUpdates || {}).forEach(function(id){ if (id === "_ts" || id === "_arr") return; if (!validIds[id]) { delete dateUpdates[id]; duChanged = true; } });
+    if (ceChanged) { try { localStorage.setItem("u4ce", JSON.stringify(caseEdits)); if (typeof fbSave === "function") fbSave("u4ce"); } catch(_){} }
+    if (duChanged) { try { localStorage.setItem("u4du", JSON.stringify(dateUpdates)); if (typeof fbSave === "function") fbSave("u4du"); } catch(_){} }
+  } catch(e){}
+})();
 var editMode=false;
 var editCaseId="";
 
@@ -961,7 +973,7 @@ var id=cb.getAttribute("data-id");
 var c=cases.find(function(x){return x.id===id;});
 if(!c)return;
 if(newDate){c.nd=newDate;dateUpdates[id]=newDate;
-if(!caseEdits[id])caseEdits[id]={};caseEdits[id].nd=newDate;}
+if(!caseEdits[id])caseEdits[id]={};/* [FIX-REVERT] do not store nd in caseEdits - dateUpdates is canonical */if(caseEdits[id].nd!==undefined)delete caseEdits[id].nd;}
 if(newJudge){if(!caseEdits[id])caseEdits[id]={};
 caseEdits[id].jn=newJudge;c.jn=newJudge;}
 count++;
@@ -1147,6 +1159,17 @@ setInterval(chkN,30*60000);
         });
         try { localStorage.setItem("u4ce", JSON.stringify(data)); } catch(_){}
       }
+      /* [FIX-REVERT] For u4du, advance per-id timestamps for any id that changed since last snapshot, and embed _ts in cloud payload */
+      if (key === "u4du" && data && typeof data === "object" && !Array.isArray(data)) {
+        var prevSnap = {}; try { prevSnap = JSON.parse(localStorage.getItem("u4du_prev") || "{}"); } catch(_){ prevSnap = {}; }
+        var existingTs = {}; try { existingTs = JSON.parse(localStorage.getItem("u4du_ts") || "{}"); } catch(_){ existingTs = {}; }
+        var nowTs = Date.now();
+        var nextTs = {};
+        Object.keys(data).forEach(function(id){ if (id === "_arr" || id === "_ts") return; if (prevSnap[id] !== data[id]) { nextTs[id] = nowTs; } else { nextTs[id] = existingTs[id] || nowTs; } });
+        try { localStorage.setItem("u4du_ts", JSON.stringify(nextTs)); } catch(_){}
+        try { localStorage.setItem("u4du_prev", JSON.stringify(data)); } catch(_){}
+        data._ts = nextTs;
+      }
       const payload = Array.isArray(data) ? { _arr: data } : data;
       var _sb=document.getElementById("fb-sync-bar");
       if(_sb){_sb.style.display="block";_sb.style.background="linear-gradient(90deg,#1a2744,#2c3e50)";_sb.innerHTML="&#9679; Saving&hellip;";}
@@ -1250,6 +1273,8 @@ setInterval(chkN,30*60000);
         }
       });
       const merged = Object.assign({}, local, cloud);
+      /* [FIX-REVERT] strip nd from merged caseEdits; dateUpdates is canonical */
+      Object.keys(merged).forEach(function(id){ if (merged[id] && typeof merged[id] === "object" && merged[id].nd !== undefined) { delete merged[id].nd; } });
       localStorage.setItem("u4ce", JSON.stringify(merged));
       window.caseEdits = merged;
       if (typeof window.cases !== "undefined") {
@@ -1300,9 +1325,26 @@ setInterval(chkN,30*60000);
       if (!snap.exists()) return;
       const cloud = snap.data() || {};
       const local = JSON.parse(localStorage.getItem("u4du") || "{}");
-      const merged = Object.assign({}, local, cloud);
-      delete merged._arr;
+      delete cloud._arr; delete local._arr;
+      /* [FIX-REVERT] Timestamp-aware last-write-wins per id. */
+      var localTs = {}; try { localTs = JSON.parse(localStorage.getItem("u4du_ts") || "{}"); } catch(_){ localTs = {}; }
+      var cloudTs = (cloud && cloud._ts) || {};
+      var merged = {};
+      var allIds = new Set();
+      Object.keys(local).forEach(function(id){ if(id !== "_arr" && id !== "_ts") allIds.add(id); });
+      Object.keys(cloud).forEach(function(id){ if(id !== "_arr" && id !== "_ts") allIds.add(id); });
+      var mergedTs = {};
+      allIds.forEach(function(id){
+        var lv = local[id], cv = cloud[id];
+        var lt = localTs[id] || 0, ct = cloudTs[id] || 0;
+        if (lv === undefined && cv !== undefined) { merged[id] = cv; mergedTs[id] = ct; }
+        else if (lv !== undefined && cv === undefined) { merged[id] = lv; mergedTs[id] = lt; }
+        else if (lv === cv) { merged[id] = lv; mergedTs[id] = Math.max(lt, ct); }
+        else if (lt >= ct) { merged[id] = lv; mergedTs[id] = lt; }
+        else { merged[id] = cv; mergedTs[id] = ct; }
+      });
       localStorage.setItem("u4du", JSON.stringify(merged));
+      try { localStorage.setItem("u4du_ts", JSON.stringify(mergedTs)); } catch(_){}
       window.dateUpdates = merged;
       if (typeof window.cases !== "undefined") {
         Object.keys(merged).forEach(function(id) {
