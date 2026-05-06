@@ -112,13 +112,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <body><div id="mob-overlay" class="mob-overlay" onclick="toggleSidebar()" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:8999;"></div>
 <div id="ulg-lock" style="position:fixed;top:0;left:0;width:100%;height:100%;background:linear-gradient(160deg,#1a2744,#0f1929);display:flex;align-items:center;justify-content:center;z-index:99999;flex-direction:column;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
   <div style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);border-radius:18px;padding:40px 36px;width:90%;max-width:360px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.5);">
-    <div style="width:72px;height:72px;background:linear-gradient(180deg,#c9a227,#a07a10);border-radius:50%;margin:0 auto 18px;display:flex;align-items:center;justify-content:center;font-size:32px;">ÃÂ¢ÃÂÃÂÃÂ¯ÃÂ¸ÃÂ</div>
+    <div style="width:72px;height:72px;background:linear-gradient(180deg,#c9a227,#a07a10);border-radius:50%;margin:0 auto 18px;display:flex;align-items:center;justify-content:center;font-size:32px;">ÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¯ÃÂÃÂ¸ÃÂÃÂ</div>
     <div style="color:#c9a227;font-size:22px;font-weight:700;letter-spacing:1px;margin-bottom:4px;">UN Legal Group</div>
     <div style="color:rgba(255,255,255,.5);font-size:13px;margin-bottom:28px;">Case Management System</div>
     <input id="ulg-pwd" type="password" placeholder="Enter Password" style="width:100%;box-sizing:border-box;padding:13px 16px;border-radius:10px;border:1.5px solid rgba(255,255,255,.2);background:rgba(255,255,255,.08);color:#fff;font-size:16px;outline:none;text-align:center;letter-spacing:3px;margin-bottom:12px;" />
     <div id="ulg-err" style="color:#ff6b6b;font-size:13px;min-height:18px;margin-bottom:10px;"></div>
     <button id="ulg-btn" style="width:100%;padding:13px;background:linear-gradient(180deg,#c9a227,#a07a10);border:none;border-radius:10px;color:#1a2744;font-size:16px;font-weight:700;cursor:pointer;letter-spacing:1px;">LOGIN</button>
-    <div style="color:rgba(255,255,255,.3);font-size:11px;margin-top:20px;">ÃÂ°ÃÂÃÂÃÂ Authorised Access Only</div>
+    <div style="color:rgba(255,255,255,.3);font-size:11px;margin-top:20px;">ÃÂÃÂ°ÃÂÃÂÃÂÃÂÃÂÃÂ Authorised Access Only</div>
   </div>
 </div>
 
@@ -127,7 +127,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <div class="nv">
 <a class="ni a" onclick="go('dash')">&#128202; Dashboard</a>
 <a class="ni" onclick="go('cases')">&#128193; All Cases <span class="c" id="ac-cnt">1652</span></a>
-<a class="ni" onclick="go('ntc')">&#128140; Notices <span class="c" id="ntc-cnt">ÃÂ¢ÃÂÃÂ</span></a>
+<a class="ni" onclick="go('ntc')">&#128140; Notices <span class="c" id="ntc-cnt">ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ</span></a>
 <a class="ni" onclick="go('hear')">&#128197; Hearings Calendar</a>
 <a class="ni" onclick="go('cl')">&#9878;&#65039; Cause List</a>
 <a class="ni" onclick="go('nodt')">&#9888;&#65039; No-Date Cases <span class="c" id="nd-badge">0</span></a>
@@ -190,6 +190,56 @@ var clientNums=JSON.parse(localStorage.getItem("u4cn")||"{}");
 var dateUpdates=JSON.parse(localStorage.getItem("u4du")||"{}");
 /* [FIX-ARRAY] Defensive: localStorage may have an object-with-numeric-keys due to a Firestore round-trip quirk. Convert back to array. */
 function __toArrSafe(raw){ try { var v = JSON.parse(raw||"[]"); if(Array.isArray(v)) return v; if(v && typeof v === "object"){ var ks = Object.keys(v).filter(function(k){return !isNaN(parseInt(k));}).sort(function(a,b){return parseInt(a)-parseInt(b);}); return ks.map(function(k){return v[k];}); } return []; } catch(_){ return []; } }
+
+/* ===== [STATUS-DROPDOWN] Standardized case status options (single source of truth) ===== */
+var STATUS_OPTIONS = ["Fresh Case", "Summons Issued", "Evidence", "Misc. Arguments", "Final Arguments"];
+var STATUS_TERMINAL_DISPOSED = "Disposed off case";
+function isDisposedStatus(v){ if(!v) return false; v = String(v); return v.indexOf("Dispos") !== -1 || v.indexOf("dispos") !== -1; }
+function normalizeStatus(raw){
+  if (raw === null || raw === undefined) return "Fresh Case";
+  var v = String(raw).trim();
+  if (v === "" || v === "\u2014" || v === "-" || v === "—") return "Fresh Case";
+  if (isDisposedStatus(v)) return STATUS_TERMINAL_DISPOSED;
+  for (var i = 0; i < STATUS_OPTIONS.length; i++) { if (v === STATUS_OPTIONS[i]) return STATUS_OPTIONS[i]; }
+  var vu = v.toUpperCase();
+  for (var j = 0; j < STATUS_OPTIONS.length; j++) { if (vu === STATUS_OPTIONS[j].toUpperCase()) return STATUS_OPTIONS[j]; }
+  if (vu.indexOf("FRESH") !== -1) return "Fresh Case";
+  if (vu.indexOf("VERIFY ADDRESS") !== -1) return "Fresh Case";
+  if (vu.indexOf("PENDING") !== -1) return "Fresh Case";
+  if (vu.indexOf("SUMMONS") !== -1) return "Summons Issued";
+  if (vu.indexOf("SUMMON") !== -1) return "Summons Issued";
+  if (vu.indexOf("EVIDENCE") !== -1) return "Evidence";
+  if (vu.indexOf("FINAL ARG") !== -1 || vu.indexOf("FINAL HEAR") !== -1 || vu.indexOf("JUDGMENT") !== -1 || vu.indexOf("JUDGEMENT") !== -1) return "Final Arguments";
+  if (vu.indexOf("MISC") !== -1 || vu.indexOf("ARGUMENT") !== -1) return "Misc. Arguments";
+  if (vu.indexOf("BW") !== -1 || vu.indexOf("NBW") !== -1 || vu.indexOf("NBE") !== -1) return "Misc. Arguments";
+  if (vu.indexOf("CRPC") !== -1 || vu.indexOf("CR PC") !== -1 || vu.indexOf("CR.P.C") !== -1) return "Misc. Arguments";
+  if (vu.indexOf("NOTICE") !== -1) return "Misc. Arguments";
+  if (vu.indexOf("DASTI") !== -1) return "Misc. Arguments";
+  if (vu.indexOf("ATTACHMENT") !== -1) return "Misc. Arguments";
+  if (vu.indexOf("COPY SUPPLY") !== -1) return "Misc. Arguments";
+  if (vu.indexOf("CERTIFIED") !== -1) return "Misc. Arguments";
+  if (vu.indexOf("MEDIATION") !== -1) return "Misc. Arguments";
+  return "Fresh Case";
+}
+window.STATUS_OPTIONS = STATUS_OPTIONS;
+window.normalizeStatus = normalizeStatus;
+window.isDisposedStatus = isDisposedStatus;
+
+(function(){
+  try {
+    var u4ce = JSON.parse(localStorage.getItem("u4ce") || "{}");
+    if (u4ce && typeof u4ce === "object" && !Array.isArray(u4ce)) {
+      var changed = false;
+      Object.keys(u4ce).forEach(function(id){
+        if (u4ce[id] && typeof u4ce[id] === "object" && u4ce[id].st !== undefined && u4ce[id].st !== null) {
+          var norm = normalizeStatus(u4ce[id].st);
+          if (norm !== u4ce[id].st) { u4ce[id].st = norm; changed = true; }
+        }
+      });
+      if (changed) { try { localStorage.setItem("u4ce", JSON.stringify(u4ce)); } catch(_){} }
+    }
+  } catch(_){}
+})();
 /* [AUTO-REPAIR] Rewrite localStorage with clean shape so corrupted Firestore round-trip data can't poison subsequent sessions or break listeners. */
 try {
   var __repairKeys = ["u4nc","u4t","u4o","u4c"];
@@ -316,10 +366,10 @@ h+='<select id="cf_st" style="padding:8px 12px;border-radius:8px;border:1px soli
 stOpts.forEach(function(o){h+='<option'+(window._cfSt===o?' selected':'')+'>'+o+'</option>'});
 h+='</select>';
 h+='<select id="cf_so" style="padding:8px 12px;border-radius:8px;border:1px solid var(--bd);background:var(--wh);color:var(--tx);font-size:12px;cursor:pointer" onchange="window._cfSo=this.value;cp=1;renderC()">';
-["Serial No","Next Date ÃÂ¢ÃÂÃÂ","Next Date ÃÂ¢ÃÂÃÂ","Party Name AÃÂ¢ÃÂÃÂZ","Party Name ZÃÂ¢ÃÂÃÂA","Total Amount ÃÂ¢ÃÂÃÂ"].forEach(function(o){h+='<option'+(window._cfSo===o?' selected':'')+'>'+o+'</option>'});
+["Serial No","Next Date ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ","Next Date ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ","Party Name AÃÂÃÂ¢ÃÂÃÂÃÂÃÂZ","Party Name ZÃÂÃÂ¢ÃÂÃÂÃÂÃÂA","Total Amount ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ"].forEach(function(o){h+='<option'+(window._cfSo===o?' selected':'')+'>'+o+'</option>'});
 h+='</select>';
-h+='<input type="text" id="cf_jf" placeholder="ÃÂ°ÃÂÃÂÃÂ¨ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¯ÃÂ¸ÃÂ Judge" value="'+(window._cfJf||'')+'" oninput="window._cfJf=this.value;clearTimeout(window._jfT);window._jfT=setTimeout(renderC,400)" style="padding:6px 10px;border-radius:8px;border:1px solid var(--bd);font-size:12px;width:130px" title="Filter by Judge Name">';
-h+='<input type="text" id="cf_crf" placeholder="ÃÂ°ÃÂÃÂÃÂ Court" value="'+(window._cfCrf||'')+'" oninput="window._cfCrf=this.value;clearTimeout(window._crfT);window._crfT=setTimeout(renderC,400)" style="padding:6px 10px;border-radius:8px;border:1px solid var(--bd);font-size:12px;width:130px" title="Filter by Court Name">';
+h+='<input type="text" id="cf_jf" placeholder="ÃÂÃÂ°ÃÂÃÂÃÂÃÂÃÂÃÂ¨ÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¯ÃÂÃÂ¸ÃÂÃÂ Judge" value="'+(window._cfJf||'')+'" oninput="window._cfJf=this.value;clearTimeout(window._jfT);window._jfT=setTimeout(renderC,400)" style="padding:6px 10px;border-radius:8px;border:1px solid var(--bd);font-size:12px;width:130px" title="Filter by Judge Name">';
+h+='<input type="text" id="cf_crf" placeholder="ÃÂÃÂ°ÃÂÃÂÃÂÃÂÃÂÃÂ Court" value="'+(window._cfCrf||'')+'" oninput="window._cfCrf=this.value;clearTimeout(window._crfT);window._crfT=setTimeout(renderC,400)" style="padding:6px 10px;border-radius:8px;border:1px solid var(--bd);font-size:12px;width:130px" title="Filter by Court Name">';
 h+='</div>';
 var fl=cases.slice();
 if(window._cfCt&&window._cfCt!=="All Types")fl=fl.filter(function(c){return c.ct===window._cfCt});
@@ -329,11 +379,11 @@ if(window._cfCrf&&window._cfCrf.trim())fl=fl.filter(function(c){return(c.crt||""
 if(cs){var s=cs.toLowerCase();fl=fl.filter(function(c){return[c.pn,c.op,c.cn,c.crn,c.fn,c.jn,c.cr,c.st,c.ar,c.ct,c.nr,c.crt||""].join(" ").toLowerCase().indexOf(s)>=0})}
 // Apply sort
 var so=window._cfSo||"Serial No";
-if(so==="Next Date ÃÂ¢ÃÂÃÂ"){fl.sort(function(a,b){var av=a.nd||"9999";var bv=b.nd||"9999";return av<bv?-1:av>bv?1:0})}
-else if(so==="Next Date ÃÂ¢ÃÂÃÂ"){fl.sort(function(a,b){var av=a.nd||"";var bv=b.nd||"";return av>bv?-1:av<bv?1:0})}
-else if(so==="Party Name AÃÂ¢ÃÂÃÂZ"){fl.sort(function(a,b){return(a.pn||"").localeCompare(b.pn||"")})}
-else if(so==="Party Name ZÃÂ¢ÃÂÃÂA"){fl.sort(function(a,b){return(b.pn||"").localeCompare(a.pn||"")})}
-else if(so==="Total Amount ÃÂ¢ÃÂÃÂ"){fl.sort(function(a,b){return(parseFloat(b.ta)||0)-(parseFloat(a.ta)||0)})}
+if(so==="Next Date ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ"){fl.sort(function(a,b){var av=a.nd||"9999";var bv=b.nd||"9999";return av<bv?-1:av>bv?1:0})}
+else if(so==="Next Date ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ"){fl.sort(function(a,b){var av=a.nd||"";var bv=b.nd||"";return av>bv?-1:av<bv?1:0})}
+else if(so==="Party Name AÃÂÃÂ¢ÃÂÃÂÃÂÃÂZ"){fl.sort(function(a,b){return(a.pn||"").localeCompare(b.pn||"")})}
+else if(so==="Party Name ZÃÂÃÂ¢ÃÂÃÂÃÂÃÂA"){fl.sort(function(a,b){return(b.pn||"").localeCompare(a.pn||"")})}
+else if(so==="Total Amount ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ"){fl.sort(function(a,b){return(parseFloat(b.ta)||0)-(parseFloat(a.ta)||0)})}
 var isFiltered=(window._cfCt&&window._cfCt!=="All Types")||(window._cfSt&&window._cfSt!=="All Status")||cs;
 h+='<div style="font-size:11px;color:var(--tx2);margin-bottom:8px">';
 if(isFiltered){h+='<span style="color:var(--nv);font-weight:600">'+fl.length+' results</span> (filtered from '+cases.length+' total)';}
@@ -358,7 +408,7 @@ h+='<div class="rw"><span class="k">AR Name</span><span class="vl">'+F(c.ar)+'</
 h+='<div class="rw"><span class="k">Status</span><span class="vl">'+F(c.st)+'</span></div>';
 h+='</div>';
 var am=[];if(c.pa)am.push("PA:"+FM(c.pa));if(c.ta)am.push("Total:"+FM(c.ta));if(c.ra)am.push("Recv:"+FM(c.ra));
-if(am.length)h+='<div class="amt">'+am.join(" ÃÂ¢ÃÂÃÂ¢ ")+'</div>';
+if(am.length)h+='<div class="amt">'+am.join(" ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ¢ ")+'</div>';
 h+='</div>'});
 h+='</div>';
 var tp=Math.ceil(fl.length/PP);
@@ -381,6 +431,30 @@ if(c){var ed=caseEdits[id];Object.keys(ed).forEach(function(k){
 });
 // [FIX] Apply dateUpdates LAST so it wins for the 'nd' field (canonical store for next hearing date)
 Object.keys(dateUpdates).forEach(function(id){var c=cases.find(function(x){return x.id===id});if(c && dateUpdates[id])c.nd=dateUpdates[id]});
+/* [STATUS-DROPDOWN] Normalize all case status values to canonical dropdown options at boot. */
+(function(){
+  try {
+    if (typeof cases === "undefined" || !Array.isArray(cases) || typeof normalizeStatus !== "function") return;
+    var anyChange = false;
+    cases.forEach(function(c){
+      if (!c || typeof c !== "object") return;
+      var orig = c.st;
+      var norm = normalizeStatus(orig);
+      if (orig !== norm) {
+        c.st = norm;
+        if (typeof caseEdits !== "undefined" && caseEdits) {
+          if (!caseEdits[c.id]) caseEdits[c.id] = {};
+          caseEdits[c.id].st = norm;
+          anyChange = true;
+        }
+      }
+    });
+    if (anyChange) {
+      try { localStorage.setItem("u4ce", JSON.stringify(caseEdits)); } catch(_){}
+    }
+  } catch(_){}
+})();
+
 // [FIX] Self-heal stale caseEdits[id].nd that contradict dateUpdates - prevents future regression
 (function(){var changed=false;Object.keys(dateUpdates).forEach(function(id){if(caseEdits[id] && caseEdits[id].nd && caseEdits[id].nd!==dateUpdates[id]){caseEdits[id].nd=dateUpdates[id];changed=true;}});if(changed){try{localStorage.setItem("u4ce",JSON.stringify(caseEdits));if(typeof fbSave==="function")fbSave("u4ce");}catch(e){}}})();
 
@@ -444,7 +518,19 @@ var inpType="text";
 if(isDF(k))inpType="date";
 else if(isMF(k))inpType="number";
 h+='<div class="fg" style="margin-bottom:6px"><label>'+LB[k]+'</label>';
-h+='<input type="'+inpType+'" id="ed_'+k+'" value="'+v.replace(/"/g,"&quot;")+'" style="padding:6px 10px;border:1px solid var(--bd);border-radius:6px;font-size:11px;width:100%">';
+if (k === "st") {
+        var __nv = (typeof normalizeStatus === "function") ? normalizeStatus(v) : v;
+        var __isTerm = (typeof isDisposedStatus === "function") && isDisposedStatus(v);
+        h += '<select id="ed_'+k+'" style="padding:6px 10px;border:1px solid var(--bd);border-radius:6px;font-size:11px;width:100%;background:var(--bg);color:var(--tx)">';
+        if (__isTerm) { h += '<option value="'+v.replace(/"/g,"&quot;")+'" selected>'+v.replace(/"/g,"&quot;")+' (terminal)</option>'; }
+        for (var __i = 0; __i < STATUS_OPTIONS.length; __i++) {
+          var __opt = STATUS_OPTIONS[__i];
+          h += '<option value="'+__opt+'"'+(((!__isTerm) && __nv === __opt) ? ' selected' : '')+'>'+__opt+'</option>';
+        }
+        h += '</select>';
+      } else {
+        h+='<input type="'+inpType+'" id="ed_'+k+'" value="'+v.replace(/"/g,"&quot;")+'" style="padding:6px 10px;border:1px solid var(--bd);border-radius:6px;font-size:11px;width:100%">';
+      }
 h+='</div>';
 });
 
@@ -457,7 +543,7 @@ h+='</div>';
 $("mbd").innerHTML=h;$("cm").classList.add("sh");
 }
 
-function saveAllEdits(){var c=cases.find(function(x){return x.id===editCaseId});if(!c)return;var editFields=["cn","pn","op","ct","pr","crn","fn","jn","crt","nd","ld","st","ar","arn","on","no","oa","cc","opa","sta","nop","eop","pa","ia","ta","ra","ch","cs","cr","trk","wad","emd","spd","cmp","dcmp","nr","dln","chq"];var changes={};editFields.forEach(function(k){var el=$("ed_"+k);if(!el)return;var newVal=el.value;if(isMF(k))newVal=parseFloat(newVal)||0;if(String(c[k])!==String(newVal)){c[k]=newVal;changes[k]=newVal;}});
+function saveAllEdits(){var c=cases.find(function(x){return x.id===editCaseId});if(!c)return;var editFields=["cn","pn","op","ct","pr","crn","fn","jn","crt","nd","ld","st","ar","arn","on","no","oa","cc","opa","sta","nop","eop","pa","ia","ta","ra","ch","cs","cr","trk","wad","emd","spd","cmp","dcmp","nr","dln","chq"];var changes={};editFields.forEach(function(k){var el=$("ed_"+k);if(!el)return;var newVal=el.value;if(isMF(k))newVal=parseFloat(newVal)||0;if(k==="st"&&typeof normalizeStatus==="function"&&!isDisposedStatus(newVal))newVal=normalizeStatus(newVal);if(String(c[k])!==String(newVal)){c[k]=newVal;changes[k]=newVal;}});
 if(changes.nd!==undefined){dateUpdates[c.id]=changes.nd;localStorage.setItem("u4du",JSON.stringify(dateUpdates));if(typeof fbSave==="function")fbSave("u4du");}
 if(!caseEdits[c.id])caseEdits[c.id]={};
 Object.keys(changes).forEach(function(k){if(k==="nd")return;caseEdits[c.id][k]=changes[k];});
@@ -725,7 +811,7 @@ h+='<table class="clt"><tr><th>#</th><th>Party Name</th><th>Vs</th><th>Case No</
 ndc.forEach(function(c,i){
 h+='<tr><td>'+(i+1)+'</td><td>'+F(c.pn)+'</td><td>'+F(c.op)+'</td><td>'+F(c.cn)+'</td><td>'+F(c.crn)+'</td><td>'+F(c.ct)+'</td><td>'+FD(c.ld)+'</td>';
 h+='<td><select class="si" style="font-size:10px;padding:3px;width:120px" onchange="updNDStatus('+c.sn+',this.value)">';
-var statuses=["Pending","Disposed","Decided","Dismissed","Closed","Transferred","Stayed","Adjourned","Withdrawn","Settled","Compromised","Contested","Uncontested","Referred","Listed","Not Listed"];
+var statuses = STATUS_OPTIONS.slice();
 statuses.forEach(function(s){h+='<option value="'+s+'"'+(c.st===s?" selected":"")+'>'+s+'</option>'});
 h+='</select></td>';
 h+='<td style="white-space:nowrap"><button class="btn bp bsm" onclick="opM(\''+c.sn+'\')" style="margin-right:4px">&#128197; Set Date</button></td></tr>'});
@@ -737,6 +823,8 @@ c.st=val;
 if(!caseEdits[c.id])caseEdits[c.id]={};
 caseEdits[c.id].st=val;
 try{localStorage.setItem("u4ce",JSON.stringify(caseEdits))}catch(e){}
+if(typeof fbSave==="function")fbSave("u4ce");
+if(typeof renderDB==="function")renderDB();
 }
 
 // ===== TASKS =====
@@ -930,7 +1018,7 @@ if(q)notices=notices.filter(function(c){return[c.pn,c.op,c.nr,c.opa,c.nop||""].j
 if(sf&&sf!=="All Status")notices=notices.filter(function(c){return(c.st||"").toLowerCase().indexOf(sf.toLowerCase())>=0;});
 var h='<div class="ab">';
 h+='<h3>&#128140; Notices <span style="font-size:13px;color:var(--tx2);">('+notices.length+')</span></h3>';
-h+='<p style="font-size:11px;color:var(--tx2);margin-bottom:12px">Pre-litigation notice tracker. Click any row to open the case. Add New Case ÃÂ¢ÃÂÃÂ select Case Type = NOTICE.</p>';
+h+='<p style="font-size:11px;color:var(--tx2);margin-bottom:12px">Pre-litigation notice tracker. Click any row to open the case. Add New Case ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ select Case Type = NOTICE.</p>';
 h+='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center">';
 h+='<input type="text" id="ntc-srch" placeholder="&#128269; Search party, ref no, phone..." value="'+q+'" oninput="clearTimeout(window._ntcT);window._ntcT=setTimeout(renderNotices,350)" style="padding:8px 12px;border-radius:8px;border:1px solid var(--bd);font-size:13px;flex:1;min-width:180px">';
 h+='<select id="ntc-sf" onchange="renderNotices()" style="padding:8px 12px;border-radius:8px;border:1px solid var(--bd);font-size:13px;cursor:pointer">';
@@ -943,8 +1031,8 @@ h+='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collap
 h+='<thead><tr style="background:var(--nv);color:#fff;text-align:left">';
 ['#','Party Name','Opposite Party','Opp Address / Phone','Ref No','Notice Sent','Speed Post','Tracking No','WhatsApp','Email','Reply By / Next Date','Amount','Status','AR'].forEach(function(col){h+='<th style="padding:8px 10px;white-space:nowrap">'+col+'</th>';});
 h+='</tr></thead><tbody>';
-var FX=function(v){return v||'ÃÂ¢ÃÂÃÂ';};
-var FD=function(v){if(!v||v==='ÃÂ¢ÃÂÃÂ')return'ÃÂ¢ÃÂÃÂ';try{var d=new Date(v);return isNaN(d)?v:d.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});}catch(e){return v;}};
+var FX=function(v){return v||'ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ';};
+var FD=function(v){if(!v||v==='ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ')return'ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ';try{var d=new Date(v);return isNaN(d)?v:d.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});}catch(e){return v;}};
 var SC=function(s){var m={'sent':'#2196f3','reply received':'#4caf50','no reply':'#f44336','expired':'#f44336','filed in court':'#9c27b0','settled':'#4caf50','resolved':'#4caf50','fresh matter':'#888'};var k=(s||'').toLowerCase();for(var key in m)if(k.indexOf(key)>=0)return m[key];return'#888';};
 notices.forEach(function(c,i){
 var bg=i%2===0?'background:var(--bg)':'background:rgba(0,0,0,0.025)';
@@ -958,11 +1046,11 @@ h+='<td style="padding:8px 10px;color:var(--tx2);font-size:11px;max-width:200px"
 h+='<td style="padding:8px 10px;font-family:monospace;color:#1565c0;white-space:nowrap">'+FX(c.nr)+'</td>';
 h+='<td style="padding:8px 10px;white-space:nowrap">'+FD(c.dln)+'</td>';
 h+='<td style="padding:8px 10px;white-space:nowrap;color:var(--tx2)">'+FD(c.spd||'')+'</td>';
-h+='<td style="padding:8px 10px;white-space:nowrap;font-size:11px;color:var(--tx2)">'+FX(c.trk||'ÃÂ¢ÃÂÃÂ')+'</td>';
+h+='<td style="padding:8px 10px;white-space:nowrap;font-size:11px;color:var(--tx2)">'+FX(c.trk||'ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ')+'</td>';
 h+='<td style="padding:8px 10px;white-space:nowrap;color:var(--tx2)">'+FD(c.wad||'')+'</td>';
 h+='<td style="padding:8px 10px;white-space:nowrap;color:var(--tx2)">'+FD(c.emd||'')+'</td>';
 h+='<td style="padding:8px 10px;white-space:nowrap;'+overdue+'">'+FD(c.nd)+'</td>';
-h+='<td style="padding:8px 10px;text-align:right;white-space:nowrap">'+(c.ta?'ÃÂ¢ÃÂÃÂ¹'+Number(c.ta).toLocaleString('en-IN'):'ÃÂ¢ÃÂÃÂ')+'</td>';
+h+='<td style="padding:8px 10px;text-align:right;white-space:nowrap">'+(c.ta?'ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ¹'+Number(c.ta).toLocaleString('en-IN'):'ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ')+'</td>';
 h+='<td style="padding:8px 10px"><span style="background:'+SC(c.st)+';color:#fff;padding:3px 8px;border-radius:12px;font-size:10px;white-space:nowrap">'+FX(c.st)+'</span></td>';
 h+='<td style="padding:8px 10px;color:var(--tx2)">'+FX(c.ar)+'</td>';
 h+='</tr>';
@@ -1023,7 +1111,7 @@ renderBulkList();renderDB();renderC();
 function renderNC(){
 var h='<div class="fb2"><h3>&#10133; Add New Case / Fresh Matter</h3>';
 h+='<p style="font-size:11px;color:var(--tx2);margin-bottom:10px">Add new cases to be filed. Auto-saved to your app.</p>';
-var fields=[{id:"nc_pn",l:"Party Name *",t:"text",p:"e.g. ABC Pvt Ltd"},{id:"nc_op",l:"Opposite Party *",t:"text",p:"e.g. XYZ Traders"},{id:"nc_pr",l:"Petitioner/Respondent",t:"select",opts:["PETITIONER","RESPONDENT"]},{id:"nc_ct",l:"Case Type",t:"select",opts:["138 NI ACT","CIVIL","CRIMINAL","ARBITRATION","CONSUMER","FAMILY","LABOUR","RERA","NCLT","NOTICE","EXECUTION","TRANSFER CERTIFICATE","PRE-MEDIATION APPLICATION","TM HEARING","OTHER"]},{id:"nc_cn",l:"Case No",t:"text",p:"After filing"},{id:"nc_fn",l:"Filing No",t:"text",p:"Filing ref"},{id:"nc_crn",l:"CNR No",t:"text",p:"CNR"},{id:"nc_jn",l:"Judge Name",t:"text",p:"Judge"},{id:"nc_cr",l:"Court Room",t:"text",p:"Court"},{id:"nc_crt",l:"Court Name",t:"text",p:"Court Name (e.g. Saket District Court)"},{id:"nc_nd",l:"Next Hearing Date",t:"date",p:""},{id:"nc_ld",l:"Last Hearing Date",t:"date",p:""},{id:"nc_ar",l:"AR Name",t:"text",p:"AR"},{id:"nc_arn",l:"AR Number",t:"text",p:"AR Phone"},{id:"nc_cc",l:"Customer Code",t:"text",p:"Code"},{id:"nc_nop",l:"Opp Phone",t:"text",p:"Phone"},{id:"nc_eop",l:"Opp Email",t:"text",p:"Email"},{id:"nc_pa",l:"Principal Amt",t:"number",p:"0"},{id:"nc_ia",l:"Interest Amt",t:"number",p:"0"},{id:"nc_ta",l:"Total Amt",t:"number",p:"0"},{id:"nc_chq",l:"Cheque No",t:"text",p:"Cheque"},{id:"nc_nr",l:"Notice Ref",t:"text",p:"Ref"},{id:"nc_dln",l:"Notice Date",t:"date",p:""},{id:"nc_spd",l:"Speed Post Date",t:"date",p:""},{id:"nc_trk",l:"Speed Post Tracking No",t:"text",p:"e.g. SP789456123IN"},{id:"nc_wad",l:"WhatsApp Sent Date",t:"date",p:""},{id:"nc_emd",l:"Email Sent Date",t:"date",p:""},{id:"nc_st",l:"Status",t:"text",p:"FRESH MATTER"},{id:"nc_oa",l:"Office Address",t:"text",p:"Party office address"},{id:"nc_on",l:"Owner Name",t:"text",p:"Owner/Director name"},{id:"nc_no",l:"Owner Phone",t:"text",p:"Owner contact number"},{id:"nc_opa",l:"Opp Address",t:"text",p:"Opposite party address"},{id:"nc_sta",l:"State",t:"text",p:"e.g. DELHI"},{id:"nc_cmp",l:"Compliance",t:"text",p:""},{id:"nc_cs",l:"Calling Status",t:"text",p:""}];
+var fields=[{id:"nc_pn",l:"Party Name *",t:"text",p:"e.g. ABC Pvt Ltd"},{id:"nc_op",l:"Opposite Party *",t:"text",p:"e.g. XYZ Traders"},{id:"nc_pr",l:"Petitioner/Respondent",t:"select",opts:["PETITIONER","RESPONDENT"]},{id:"nc_ct",l:"Case Type",t:"select",opts:["138 NI ACT","CIVIL","CRIMINAL","ARBITRATION","CONSUMER","FAMILY","LABOUR","RERA","NCLT","NOTICE","EXECUTION","TRANSFER CERTIFICATE","PRE-MEDIATION APPLICATION","TM HEARING","OTHER"]},{id:"nc_cn",l:"Case No",t:"text",p:"After filing"},{id:"nc_fn",l:"Filing No",t:"text",p:"Filing ref"},{id:"nc_crn",l:"CNR No",t:"text",p:"CNR"},{id:"nc_jn",l:"Judge Name",t:"text",p:"Judge"},{id:"nc_cr",l:"Court Room",t:"text",p:"Court"},{id:"nc_crt",l:"Court Name",t:"text",p:"Court Name (e.g. Saket District Court)"},{id:"nc_nd",l:"Next Hearing Date",t:"date",p:""},{id:"nc_ld",l:"Last Hearing Date",t:"date",p:""},{id:"nc_ar",l:"AR Name",t:"text",p:"AR"},{id:"nc_arn",l:"AR Number",t:"text",p:"AR Phone"},{id:"nc_cc",l:"Customer Code",t:"text",p:"Code"},{id:"nc_nop",l:"Opp Phone",t:"text",p:"Phone"},{id:"nc_eop",l:"Opp Email",t:"text",p:"Email"},{id:"nc_pa",l:"Principal Amt",t:"number",p:"0"},{id:"nc_ia",l:"Interest Amt",t:"number",p:"0"},{id:"nc_ta",l:"Total Amt",t:"number",p:"0"},{id:"nc_chq",l:"Cheque No",t:"text",p:"Cheque"},{id:"nc_nr",l:"Notice Ref",t:"text",p:"Ref"},{id:"nc_dln",l:"Notice Date",t:"date",p:""},{id:"nc_spd",l:"Speed Post Date",t:"date",p:""},{id:"nc_trk",l:"Speed Post Tracking No",t:"text",p:"e.g. SP789456123IN"},{id:"nc_wad",l:"WhatsApp Sent Date",t:"date",p:""},{id:"nc_emd",l:"Email Sent Date",t:"date",p:""},{id:"nc_st",l:"Status",t:"select",opts:STATUS_OPTIONS},{id:"nc_oa",l:"Office Address",t:"text",p:"Party office address"},{id:"nc_on",l:"Owner Name",t:"text",p:"Owner/Director name"},{id:"nc_no",l:"Owner Phone",t:"text",p:"Owner contact number"},{id:"nc_opa",l:"Opp Address",t:"text",p:"Opposite party address"},{id:"nc_sta",l:"State",t:"text",p:"e.g. DELHI"},{id:"nc_cmp",l:"Compliance",t:"text",p:""},{id:"nc_cs",l:"Calling Status",t:"text",p:""}];
 h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
 fields.forEach(function(f){h+='<div class="fg">';h+='<label>'+f.l+'</label>';if(f.t==="select"){h+='<select id="'+f.id+'">';f.opts.forEach(function(o){h+='<option>'+o+'</option>'});h+='</select>';}else if(f.id==="nc_pn"||f.id==="nc_op"){h+='<div class="ac-wrap"><input type="text" id="'+f.id+'" placeholder="'+f.p+'" autocomplete="off" oninput="acShow(this,\''+f.id+'\')" onfocus="acShow(this,\''+f.id+'\')"><div id="ac_'+f.id+'" class="ac-list" style="display:none"></div></div>';}else{h+='<input type="'+f.t+'" id="'+f.id+'" placeholder="'+f.p+'">';}h+='</div>';});
 h+='</div><div style="margin-top:14px;display:flex;gap:8px">';
@@ -1041,7 +1129,7 @@ if(!pn||!op){alert("Party Name and Opposite Party are required!");return}
 var cnrVal=$("nc_crn").value.trim();
 if(cnrVal){var dupCNR=cases.find(function(c){return(c.crn||"").trim().toLowerCase()===cnrVal.toLowerCase();});if(dupCNR){if(!confirm("\u26A0\uFE0F A case with CNR \""+cnrVal+"\" already exists:\n"+dupCNR.sn+". "+dupCNR.pn+" vs "+dupCNR.op+"\n\nAdd anyway?"))return;}}
 var nextId="NC"+(newCases.length+1).toString().padStart(4,"0");var nextSN=cases.length+1;
-var nc={id:nextId,sn:nextSN,cn:$("nc_cn").value.trim(),pn:pn,pr:$("nc_pr").value,oa:$("nc_oa").value.trim(),on:$("nc_on").value.trim(),no:$("nc_no").value.trim(),ar:$("nc_ar").value.trim(),arn:$("nc_arn").value.trim(),cc:$("nc_cc").value.trim(),op:op,opa:$("nc_opa").value.trim(),sta:$("nc_sta").value.trim(),nop:$("nc_nop").value.trim(),eop:$("nc_eop").value.trim(),pa:parseFloat($("nc_pa").value)||0,ia:parseFloat($("nc_ia").value)||0,ta:parseFloat($("nc_ta").value)||0,ra:0,chq:$("nc_chq").value.trim(),ct:$("nc_ct").value,fn:$("nc_fn").value.trim(),crn:$("nc_crn").value.trim(),jn:$("nc_jn").value.trim(),cr:$("nc_cr").value.trim(),crt:$("nc_crt").value.trim(),ld:$("nc_ld").value||"",nd:$("nc_nd").value||"",nr:$("nc_nr").value.trim(),dln:$("nc_dln").value||"",spd:$("nc_spd").value||"",trk:$("nc_trk").value.trim(),wad:$("nc_wad").value||"",emd:$("nc_emd").value||"",st:$("nc_st").value.trim()||"FRESH MATTER",cmp:$("nc_cmp").value.trim(),dcmp:"",cs:$("nc_cs").value.trim()};
+var nc={id:nextId,sn:nextSN,cn:$("nc_cn").value.trim(),pn:pn,pr:$("nc_pr").value,oa:$("nc_oa").value.trim(),on:$("nc_on").value.trim(),no:$("nc_no").value.trim(),ar:$("nc_ar").value.trim(),arn:$("nc_arn").value.trim(),cc:$("nc_cc").value.trim(),op:op,opa:$("nc_opa").value.trim(),sta:$("nc_sta").value.trim(),nop:$("nc_nop").value.trim(),eop:$("nc_eop").value.trim(),pa:parseFloat($("nc_pa").value)||0,ia:parseFloat($("nc_ia").value)||0,ta:parseFloat($("nc_ta").value)||0,ra:0,chq:$("nc_chq").value.trim(),ct:$("nc_ct").value,fn:$("nc_fn").value.trim(),crn:$("nc_crn").value.trim(),jn:$("nc_jn").value.trim(),cr:$("nc_cr").value.trim(),crt:$("nc_crt").value.trim(),ld:$("nc_ld").value||"",nd:$("nc_nd").value||"",nr:$("nc_nr").value.trim(),dln:$("nc_dln").value||"",spd:$("nc_spd").value||"",trk:$("nc_trk").value.trim(),wad:$("nc_wad").value||"",emd:$("nc_emd").value||"",st:(typeof normalizeStatus==="function"?normalizeStatus($("nc_st").value):($("nc_st").value.trim()||"Fresh Case")),cmp:$("nc_cmp").value.trim(),dcmp:"",cs:$("nc_cs").value.trim()};
 cases.push(nc);newCases.push(nc);localStorage.setItem("u4nc",JSON.stringify(newCases));if(typeof fbSave==="function")fbSave("u4nc");
 alert("Case added! Total: "+cases.length);clearNCForm();renderNC();renderDB();renderC();
 }
@@ -1473,7 +1561,7 @@ setInterval(chkN,30*60000);
       unlock();
     } else {
       var err = document.getElementById('ulg-err');
-      err.textContent = 'ÃÂ¢ÃÂÃÂ Wrong password. Please try again.';
+      err.textContent = 'ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ Wrong password. Please try again.';
       document.getElementById('ulg-pwd').value='';
       document.getElementById('ulg-pwd').focus();
     }
