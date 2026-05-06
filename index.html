@@ -1600,5 +1600,202 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   }
 });
-</script></body>
+</script>
+<!-- BEGIN: Task Classification Feature (added 2026-05-06) -->
+<script>
+(function(){
+  // ============================================================
+  // Task Classification feature for UN Legal Group case manager
+  //
+  // Adds a "Classification" field (cls) on each case. When the
+  // next hearing date is changed (via Hearings Calendar inline
+  // input or the case modal), a small modal asks the user to
+  // pick: PF / Drafting Needed / No Compliance.
+  //
+  // The selection is stored on the case and synced to Firestore
+  // using the existing caseEdits + fbSave('u4ce') mechanism.
+  //
+  // On the All Cases page, a new filter dropdown lets the user
+  // narrow the list by classification, and each card shows a
+  // colored badge for the current classification.
+  // ============================================================
+
+  var CLS_OPTIONS = ['PF', 'Drafting Needed', 'No Compliance'];
+  var CLS_KEY = 'cls';
+  var CLS_LABEL = 'Classification';
+
+  function colorFor(v){
+    if (v === 'PF') return '#1976d2';
+    if (v === 'Drafting Needed') return '#d4af37';
+    if (v === 'No Compliance') return '#666';
+    return '#888';
+  }
+
+  function ready(){
+    if (typeof cases === 'undefined' || typeof LB === 'undefined' || typeof renderC !== 'function') {
+      return setTimeout(ready, 300);
+    }
+    init();
+  }
+
+  function init(){
+    try { if (LB && !LB[CLS_KEY]) LB[CLS_KEY] = CLS_LABEL; } catch(_){}
+
+    // Wrap chgHDate (Hearings Calendar inline date change)
+    if (typeof window.chgHDate === 'function' && !window.chgHDate.__clsWrapped) {
+      var origChg = window.chgHDate;
+      window.chgHDate = function(sn, newDate){
+        var prevAlert = window.alert;
+        window.alert = function(){};
+        try { origChg.call(this, sn, newDate); } finally { window.alert = prevAlert; }
+        if (newDate) promptCls(sn, newDate);
+      };
+      window.chgHDate.__clsWrapped = true;
+    }
+
+    // Wrap saveAllEdits (case detail modal save)
+    if (typeof window.saveAllEdits === 'function' && !window.saveAllEdits.__clsWrapped) {
+      var origSave = window.saveAllEdits;
+      window.saveAllEdits = function(){
+        var c = (typeof cases !== 'undefined' && typeof editCaseId !== 'undefined')
+          ? cases.find(function(x){ return x.id === editCaseId; }) : null;
+        var prevNd = c ? c.nd : null;
+        var ndInput = document.getElementById('ed_nd');
+        var newNd = ndInput ? ndInput.value : null;
+        var ndChanged = newNd && newNd !== prevNd;
+        var r = origSave.apply(this, arguments);
+        if (ndChanged && c) promptCls(c.sn, newNd);
+        return r;
+      };
+      window.saveAllEdits.__clsWrapped = true;
+    }
+
+    // Patch renderC to add filter dropdown, badges, and pre-filter the list
+    patchRenderC();
+
+    try { renderC(); } catch(_){}
+  }
+
+  function setCaseCls(sn, val){
+    var c = cases.find(function(x){ return String(x.sn) === String(sn); });
+    if (!c) return;
+    c[CLS_KEY] = val;
+    if (typeof caseEdits !== 'undefined') {
+      if (!caseEdits[c.id]) caseEdits[c.id] = {};
+      caseEdits[c.id][CLS_KEY] = val;
+      try { localStorage.setItem('u4ce', JSON.stringify(caseEdits)); } catch(_){}
+      if (typeof fbSave === 'function') fbSave('u4ce');
+    }
+  }
+
+  function promptCls(sn, newDate){
+    showClsModal('Date set to ' + newDate + '. What does this hearing require?', function(val){
+      setCaseCls(sn, val);
+      try { if (typeof renderC === 'function') renderC(); } catch(_){}
+      try { if (typeof renderH === 'function') renderH(); } catch(_){}
+      try { if (typeof renderDB === 'function') renderDB(); } catch(_){}
+    });
+  }
+
+  function showClsModal(message, onPick){
+    var existing = document.getElementById('cls-modal');
+    if (existing) existing.remove();
+    var ov = document.createElement('div');
+    ov.id = 'cls-modal';
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:100000;display:flex;align-items:center;justify-content:center;padding:20px;';
+    var box = document.createElement('div');
+    box.style.cssText = 'background:#1e2942;color:#fff;border-radius:14px;padding:22px 24px;max-width:420px;width:100%;box-shadow:0 10px 40px rgba(0,0,0,0.5);font-family:inherit;';
+    box.innerHTML = '<h3 style="margin:0 0 14px 0;font-size:15px;color:#d4af37">Classification</h3>' +
+      '<p style="margin:0 0 16px 0;font-size:13px;color:#ccc;line-height:1.5"></p>' +
+      '<div id="cls-opts" style="display:flex;flex-direction:column;gap:8px;"></div>' +
+      '<div style="margin-top:14px;text-align:right"><button id="cls-skip" style="background:transparent;border:1px solid #555;color:#ccc;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:12px">Skip</button></div>';
+    box.querySelector('p').textContent = message;
+    ov.appendChild(box);
+    document.body.appendChild(ov);
+    var optsDiv = box.querySelector('#cls-opts');
+    CLS_OPTIONS.forEach(function(opt){
+      var btn = document.createElement('button');
+      btn.textContent = opt;
+      btn.style.cssText = 'padding:10px 14px;border-radius:8px;border:none;background:' + colorFor(opt) + ';color:#fff;font-size:13px;font-weight:600;cursor:pointer;text-align:left;';
+      btn.onclick = function(){ ov.remove(); try { onPick(opt); } catch(_){} };
+      optsDiv.appendChild(btn);
+    });
+    box.querySelector('#cls-skip').onclick = function(){ ov.remove(); };
+    // Close on backdrop click
+    ov.addEventListener('click', function(e){ if (e.target === ov) ov.remove(); });
+  }
+
+  function patchRenderC(){
+    if (typeof window.renderC !== 'function' || window.renderC.__clsPatched) return;
+    var orig = window.renderC;
+    window.renderC = function(){
+      // Pre-filter: temporarily swap the global cases array if a classification filter is active.
+      var origCases = window.cases;
+      if (window._cfCls) {
+        window.cases = origCases.filter(function(c){
+          if (window._cfCls === '__none__') return !c[CLS_KEY];
+          return c[CLS_KEY] === window._cfCls;
+        });
+      }
+      try {
+        orig.apply(this, arguments);
+      } finally {
+        window.cases = origCases;
+      }
+      injectClsFilter();
+      injectClsBadges();
+    };
+    window.renderC.__clsPatched = true;
+  }
+
+  function injectClsFilter(){
+    var anchor = document.getElementById('cf_ct');
+    if (!anchor) return;
+    if (document.getElementById('cf_cls')) return;
+    var sel = document.createElement('select');
+    sel.id = 'cf_cls';
+    sel.style.cssText = anchor.style.cssText;
+    sel.title = 'Filter by Classification';
+    var opts = [['', 'All Classifications']]
+      .concat(CLS_OPTIONS.map(function(o){ return [o, o]; }))
+      .concat([['__none__', 'Unclassified']]);
+    opts.forEach(function(p){
+      var o = document.createElement('option');
+      o.value = p[0]; o.textContent = p[1];
+      if ((window._cfCls || '') === p[0]) o.selected = true;
+      sel.appendChild(o);
+    });
+    sel.onchange = function(){ window._cfCls = this.value; try { renderC(); } catch(_){} };
+    anchor.parentNode.insertBefore(sel, anchor.nextSibling);
+  }
+
+  function injectClsBadges(){
+    var grid = document.getElementById('pg-cases');
+    if (!grid) return;
+    var cards = grid.querySelectorAll('.cc');
+    cards.forEach(function(card){
+      if (card.querySelector('.cls-badge')) return;
+      var m = (card.getAttribute('onclick') || '').match(/opM\(['"]?(\d+)/);
+      if (!m) return;
+      var c = window.cases.find(function(x){ return String(x.sn) === m[1]; });
+      if (!c || !c[CLS_KEY]) return;
+      var typeBadge = card.querySelector('.bd2');
+      if (!typeBadge) return;
+      var b = document.createElement('span');
+      b.className = 'cls-badge';
+      b.textContent = c[CLS_KEY];
+      b.style.cssText = 'display:inline-block;margin-left:6px;background:' + colorFor(c[CLS_KEY]) + ';color:#fff;font-size:9px;font-weight:700;padding:2px 7px;border-radius:10px;letter-spacing:0.3px;';
+      typeBadge.parentNode.insertBefore(b, typeBadge.nextSibling);
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', ready);
+  } else {
+    ready();
+  }
+})();
+</script>
+<!-- END: Task Classification Feature -->
+</body>
 </html>
