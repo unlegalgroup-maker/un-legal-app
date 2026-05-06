@@ -112,13 +112,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <body><div id="mob-overlay" class="mob-overlay" onclick="toggleSidebar()" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:8999;"></div>
 <div id="ulg-lock" style="position:fixed;top:0;left:0;width:100%;height:100%;background:linear-gradient(160deg,#1a2744,#0f1929);display:flex;align-items:center;justify-content:center;z-index:99999;flex-direction:column;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
   <div style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);border-radius:18px;padding:40px 36px;width:90%;max-width:360px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.5);">
-    <div style="width:72px;height:72px;background:linear-gradient(180deg,#c9a227,#a07a10);border-radius:50%;margin:0 auto 18px;display:flex;align-items:center;justify-content:center;font-size:32px;">Ã¢ÂÂÃ¯Â¸Â</div>
+    <div style="width:72px;height:72px;background:linear-gradient(180deg,#c9a227,#a07a10);border-radius:50%;margin:0 auto 18px;display:flex;align-items:center;justify-content:center;font-size:32px;">ÃÂ¢ÃÂÃÂÃÂ¯ÃÂ¸ÃÂ</div>
     <div style="color:#c9a227;font-size:22px;font-weight:700;letter-spacing:1px;margin-bottom:4px;">UN Legal Group</div>
     <div style="color:rgba(255,255,255,.5);font-size:13px;margin-bottom:28px;">Case Management System</div>
     <input id="ulg-pwd" type="password" placeholder="Enter Password" style="width:100%;box-sizing:border-box;padding:13px 16px;border-radius:10px;border:1.5px solid rgba(255,255,255,.2);background:rgba(255,255,255,.08);color:#fff;font-size:16px;outline:none;text-align:center;letter-spacing:3px;margin-bottom:12px;" />
     <div id="ulg-err" style="color:#ff6b6b;font-size:13px;min-height:18px;margin-bottom:10px;"></div>
     <button id="ulg-btn" style="width:100%;padding:13px;background:linear-gradient(180deg,#c9a227,#a07a10);border:none;border-radius:10px;color:#1a2744;font-size:16px;font-weight:700;cursor:pointer;letter-spacing:1px;">LOGIN</button>
-    <div style="color:rgba(255,255,255,.3);font-size:11px;margin-top:20px;">Ã°ÂÂÂ Authorised Access Only</div>
+    <div style="color:rgba(255,255,255,.3);font-size:11px;margin-top:20px;">ÃÂ°ÃÂÃÂÃÂ Authorised Access Only</div>
   </div>
 </div>
 
@@ -127,7 +127,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <div class="nv">
 <a class="ni a" onclick="go('dash')">&#128202; Dashboard</a>
 <a class="ni" onclick="go('cases')">&#128193; All Cases <span class="c" id="ac-cnt">1652</span></a>
-<a class="ni" onclick="go('ntc')">&#128140; Notices <span class="c" id="ntc-cnt">Ã¢ÂÂ</span></a>
+<a class="ni" onclick="go('ntc')">&#128140; Notices <span class="c" id="ntc-cnt">ÃÂ¢ÃÂÃÂ</span></a>
 <a class="ni" onclick="go('hear')">&#128197; Hearings Calendar</a>
 <a class="ni" onclick="go('cl')">&#9878;&#65039; Cause List</a>
 <a class="ni" onclick="go('nodt')">&#9888;&#65039; No-Date Cases <span class="c" id="nd-badge">0</span></a>
@@ -190,6 +190,32 @@ var clientNums=JSON.parse(localStorage.getItem("u4cn")||"{}");
 var dateUpdates=JSON.parse(localStorage.getItem("u4du")||"{}");
 /* [FIX-ARRAY] Defensive: localStorage may have an object-with-numeric-keys due to a Firestore round-trip quirk. Convert back to array. */
 function __toArrSafe(raw){ try { var v = JSON.parse(raw||"[]"); if(Array.isArray(v)) return v; if(v && typeof v === "object"){ var ks = Object.keys(v).filter(function(k){return !isNaN(parseInt(k));}).sort(function(a,b){return parseInt(a)-parseInt(b);}); return ks.map(function(k){return v[k];}); } return []; } catch(_){ return []; } }
+/* [AUTO-REPAIR] Rewrite localStorage with clean shape so corrupted Firestore round-trip data can't poison subsequent sessions or break listeners. */
+try {
+  var __repairKeys = ["u4nc","u4t","u4o","u4c"];
+  __repairKeys.forEach(function(k){
+    try {
+      var raw = localStorage.getItem(k);
+      if (!raw) return;
+      var v = JSON.parse(raw);
+      if (Array.isArray(v)) return;
+      if (v && typeof v === "object") {
+        var ks = Object.keys(v).filter(function(x){return !isNaN(parseInt(x));}).sort(function(a,b){return parseInt(a)-parseInt(b);});
+        var arr = ks.map(function(x){return v[x];});
+        localStorage.setItem(k, JSON.stringify(arr));
+      }
+    } catch(_){}
+  });
+  /* Strip stray "nd" leakage from caseEdits */
+  try {
+    var __ce = JSON.parse(localStorage.getItem("u4ce") || "{}");
+    if (__ce && typeof __ce === "object" && !Array.isArray(__ce)) {
+      var __changed = false;
+      Object.keys(__ce).forEach(function(id){ if (__ce[id] && typeof __ce[id] === "object" && __ce[id].nd !== undefined) { delete __ce[id].nd; __changed = true; } });
+      if (__changed) localStorage.setItem("u4ce", JSON.stringify(__ce));
+    }
+  } catch(_){}
+} catch(_){}
 var newCases=__toArrSafe(localStorage.getItem("u4nc"));
 try { localStorage.setItem("u4nc", JSON.stringify(newCases)); } catch(_){}
 tasks=Array.isArray(tasks)?tasks:__toArrSafe(localStorage.getItem("u4t"));
@@ -290,10 +316,10 @@ h+='<select id="cf_st" style="padding:8px 12px;border-radius:8px;border:1px soli
 stOpts.forEach(function(o){h+='<option'+(window._cfSt===o?' selected':'')+'>'+o+'</option>'});
 h+='</select>';
 h+='<select id="cf_so" style="padding:8px 12px;border-radius:8px;border:1px solid var(--bd);background:var(--wh);color:var(--tx);font-size:12px;cursor:pointer" onchange="window._cfSo=this.value;cp=1;renderC()">';
-["Serial No","Next Date Ã¢ÂÂ","Next Date Ã¢ÂÂ","Party Name AÃ¢ÂÂZ","Party Name ZÃ¢ÂÂA","Total Amount Ã¢ÂÂ"].forEach(function(o){h+='<option'+(window._cfSo===o?' selected':'')+'>'+o+'</option>'});
+["Serial No","Next Date ÃÂ¢ÃÂÃÂ","Next Date ÃÂ¢ÃÂÃÂ","Party Name AÃÂ¢ÃÂÃÂZ","Party Name ZÃÂ¢ÃÂÃÂA","Total Amount ÃÂ¢ÃÂÃÂ"].forEach(function(o){h+='<option'+(window._cfSo===o?' selected':'')+'>'+o+'</option>'});
 h+='</select>';
-h+='<input type="text" id="cf_jf" placeholder="Ã°ÂÂÂ¨Ã¢ÂÂÃ¢ÂÂÃ¯Â¸Â Judge" value="'+(window._cfJf||'')+'" oninput="window._cfJf=this.value;clearTimeout(window._jfT);window._jfT=setTimeout(renderC,400)" style="padding:6px 10px;border-radius:8px;border:1px solid var(--bd);font-size:12px;width:130px" title="Filter by Judge Name">';
-h+='<input type="text" id="cf_crf" placeholder="Ã°ÂÂÂ Court" value="'+(window._cfCrf||'')+'" oninput="window._cfCrf=this.value;clearTimeout(window._crfT);window._crfT=setTimeout(renderC,400)" style="padding:6px 10px;border-radius:8px;border:1px solid var(--bd);font-size:12px;width:130px" title="Filter by Court Name">';
+h+='<input type="text" id="cf_jf" placeholder="ÃÂ°ÃÂÃÂÃÂ¨ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¯ÃÂ¸ÃÂ Judge" value="'+(window._cfJf||'')+'" oninput="window._cfJf=this.value;clearTimeout(window._jfT);window._jfT=setTimeout(renderC,400)" style="padding:6px 10px;border-radius:8px;border:1px solid var(--bd);font-size:12px;width:130px" title="Filter by Judge Name">';
+h+='<input type="text" id="cf_crf" placeholder="ÃÂ°ÃÂÃÂÃÂ Court" value="'+(window._cfCrf||'')+'" oninput="window._cfCrf=this.value;clearTimeout(window._crfT);window._crfT=setTimeout(renderC,400)" style="padding:6px 10px;border-radius:8px;border:1px solid var(--bd);font-size:12px;width:130px" title="Filter by Court Name">';
 h+='</div>';
 var fl=cases.slice();
 if(window._cfCt&&window._cfCt!=="All Types")fl=fl.filter(function(c){return c.ct===window._cfCt});
@@ -303,11 +329,11 @@ if(window._cfCrf&&window._cfCrf.trim())fl=fl.filter(function(c){return(c.crt||""
 if(cs){var s=cs.toLowerCase();fl=fl.filter(function(c){return[c.pn,c.op,c.cn,c.crn,c.fn,c.jn,c.cr,c.st,c.ar,c.ct,c.nr,c.crt||""].join(" ").toLowerCase().indexOf(s)>=0})}
 // Apply sort
 var so=window._cfSo||"Serial No";
-if(so==="Next Date Ã¢ÂÂ"){fl.sort(function(a,b){var av=a.nd||"9999";var bv=b.nd||"9999";return av<bv?-1:av>bv?1:0})}
-else if(so==="Next Date Ã¢ÂÂ"){fl.sort(function(a,b){var av=a.nd||"";var bv=b.nd||"";return av>bv?-1:av<bv?1:0})}
-else if(so==="Party Name AÃ¢ÂÂZ"){fl.sort(function(a,b){return(a.pn||"").localeCompare(b.pn||"")})}
-else if(so==="Party Name ZÃ¢ÂÂA"){fl.sort(function(a,b){return(b.pn||"").localeCompare(a.pn||"")})}
-else if(so==="Total Amount Ã¢ÂÂ"){fl.sort(function(a,b){return(parseFloat(b.ta)||0)-(parseFloat(a.ta)||0)})}
+if(so==="Next Date ÃÂ¢ÃÂÃÂ"){fl.sort(function(a,b){var av=a.nd||"9999";var bv=b.nd||"9999";return av<bv?-1:av>bv?1:0})}
+else if(so==="Next Date ÃÂ¢ÃÂÃÂ"){fl.sort(function(a,b){var av=a.nd||"";var bv=b.nd||"";return av>bv?-1:av<bv?1:0})}
+else if(so==="Party Name AÃÂ¢ÃÂÃÂZ"){fl.sort(function(a,b){return(a.pn||"").localeCompare(b.pn||"")})}
+else if(so==="Party Name ZÃÂ¢ÃÂÃÂA"){fl.sort(function(a,b){return(b.pn||"").localeCompare(a.pn||"")})}
+else if(so==="Total Amount ÃÂ¢ÃÂÃÂ"){fl.sort(function(a,b){return(parseFloat(b.ta)||0)-(parseFloat(a.ta)||0)})}
 var isFiltered=(window._cfCt&&window._cfCt!=="All Types")||(window._cfSt&&window._cfSt!=="All Status")||cs;
 h+='<div style="font-size:11px;color:var(--tx2);margin-bottom:8px">';
 if(isFiltered){h+='<span style="color:var(--nv);font-weight:600">'+fl.length+' results</span> (filtered from '+cases.length+' total)';}
@@ -332,7 +358,7 @@ h+='<div class="rw"><span class="k">AR Name</span><span class="vl">'+F(c.ar)+'</
 h+='<div class="rw"><span class="k">Status</span><span class="vl">'+F(c.st)+'</span></div>';
 h+='</div>';
 var am=[];if(c.pa)am.push("PA:"+FM(c.pa));if(c.ta)am.push("Total:"+FM(c.ta));if(c.ra)am.push("Recv:"+FM(c.ra));
-if(am.length)h+='<div class="amt">'+am.join(" Ã¢ÂÂ¢ ")+'</div>';
+if(am.length)h+='<div class="amt">'+am.join(" ÃÂ¢ÃÂÃÂ¢ ")+'</div>';
 h+='</div>'});
 h+='</div>';
 var tp=Math.ceil(fl.length/PP);
@@ -904,7 +930,7 @@ if(q)notices=notices.filter(function(c){return[c.pn,c.op,c.nr,c.opa,c.nop||""].j
 if(sf&&sf!=="All Status")notices=notices.filter(function(c){return(c.st||"").toLowerCase().indexOf(sf.toLowerCase())>=0;});
 var h='<div class="ab">';
 h+='<h3>&#128140; Notices <span style="font-size:13px;color:var(--tx2);">('+notices.length+')</span></h3>';
-h+='<p style="font-size:11px;color:var(--tx2);margin-bottom:12px">Pre-litigation notice tracker. Click any row to open the case. Add New Case Ã¢ÂÂ select Case Type = NOTICE.</p>';
+h+='<p style="font-size:11px;color:var(--tx2);margin-bottom:12px">Pre-litigation notice tracker. Click any row to open the case. Add New Case ÃÂ¢ÃÂÃÂ select Case Type = NOTICE.</p>';
 h+='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center">';
 h+='<input type="text" id="ntc-srch" placeholder="&#128269; Search party, ref no, phone..." value="'+q+'" oninput="clearTimeout(window._ntcT);window._ntcT=setTimeout(renderNotices,350)" style="padding:8px 12px;border-radius:8px;border:1px solid var(--bd);font-size:13px;flex:1;min-width:180px">';
 h+='<select id="ntc-sf" onchange="renderNotices()" style="padding:8px 12px;border-radius:8px;border:1px solid var(--bd);font-size:13px;cursor:pointer">';
@@ -917,8 +943,8 @@ h+='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collap
 h+='<thead><tr style="background:var(--nv);color:#fff;text-align:left">';
 ['#','Party Name','Opposite Party','Opp Address / Phone','Ref No','Notice Sent','Speed Post','Tracking No','WhatsApp','Email','Reply By / Next Date','Amount','Status','AR'].forEach(function(col){h+='<th style="padding:8px 10px;white-space:nowrap">'+col+'</th>';});
 h+='</tr></thead><tbody>';
-var FX=function(v){return v||'Ã¢ÂÂ';};
-var FD=function(v){if(!v||v==='Ã¢ÂÂ')return'Ã¢ÂÂ';try{var d=new Date(v);return isNaN(d)?v:d.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});}catch(e){return v;}};
+var FX=function(v){return v||'ÃÂ¢ÃÂÃÂ';};
+var FD=function(v){if(!v||v==='ÃÂ¢ÃÂÃÂ')return'ÃÂ¢ÃÂÃÂ';try{var d=new Date(v);return isNaN(d)?v:d.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});}catch(e){return v;}};
 var SC=function(s){var m={'sent':'#2196f3','reply received':'#4caf50','no reply':'#f44336','expired':'#f44336','filed in court':'#9c27b0','settled':'#4caf50','resolved':'#4caf50','fresh matter':'#888'};var k=(s||'').toLowerCase();for(var key in m)if(k.indexOf(key)>=0)return m[key];return'#888';};
 notices.forEach(function(c,i){
 var bg=i%2===0?'background:var(--bg)':'background:rgba(0,0,0,0.025)';
@@ -932,11 +958,11 @@ h+='<td style="padding:8px 10px;color:var(--tx2);font-size:11px;max-width:200px"
 h+='<td style="padding:8px 10px;font-family:monospace;color:#1565c0;white-space:nowrap">'+FX(c.nr)+'</td>';
 h+='<td style="padding:8px 10px;white-space:nowrap">'+FD(c.dln)+'</td>';
 h+='<td style="padding:8px 10px;white-space:nowrap;color:var(--tx2)">'+FD(c.spd||'')+'</td>';
-h+='<td style="padding:8px 10px;white-space:nowrap;font-size:11px;color:var(--tx2)">'+FX(c.trk||'Ã¢ÂÂ')+'</td>';
+h+='<td style="padding:8px 10px;white-space:nowrap;font-size:11px;color:var(--tx2)">'+FX(c.trk||'ÃÂ¢ÃÂÃÂ')+'</td>';
 h+='<td style="padding:8px 10px;white-space:nowrap;color:var(--tx2)">'+FD(c.wad||'')+'</td>';
 h+='<td style="padding:8px 10px;white-space:nowrap;color:var(--tx2)">'+FD(c.emd||'')+'</td>';
 h+='<td style="padding:8px 10px;white-space:nowrap;'+overdue+'">'+FD(c.nd)+'</td>';
-h+='<td style="padding:8px 10px;text-align:right;white-space:nowrap">'+(c.ta?'Ã¢ÂÂ¹'+Number(c.ta).toLocaleString('en-IN'):'Ã¢ÂÂ')+'</td>';
+h+='<td style="padding:8px 10px;text-align:right;white-space:nowrap">'+(c.ta?'ÃÂ¢ÃÂÃÂ¹'+Number(c.ta).toLocaleString('en-IN'):'ÃÂ¢ÃÂÃÂ')+'</td>';
 h+='<td style="padding:8px 10px"><span style="background:'+SC(c.st)+';color:#fff;padding:3px 8px;border-radius:12px;font-size:10px;white-space:nowrap">'+FX(c.st)+'</span></td>';
 h+='<td style="padding:8px 10px;color:var(--tx2)">'+FX(c.ar)+'</td>';
 h+='</tr>';
@@ -1217,14 +1243,37 @@ setInterval(chkN,30*60000);
             }
           });
         }
-        const parsed = Object.assign({}, local, data);
-        if (key === "u4du") delete parsed._arr;
+        var parsed;
+        if (key === "u4du") {
+          /* [FIX-REVERT] On initial load, do timestamp-aware last-write-wins per id. */
+          var localTs = {}; try { localTs = JSON.parse(localStorage.getItem("u4du_ts") || "{}"); } catch(_){ localTs = {}; }
+          var cloudTs = (data && data._ts) || {};
+          var mergedDU = {};
+          var mergedTs = {};
+          var allIds = new Set();
+          Object.keys(local).forEach(function(id){ if (id !== "_arr" && id !== "_ts") allIds.add(id); });
+          Object.keys(data).forEach(function(id){ if (id !== "_arr" && id !== "_ts") allIds.add(id); });
+          allIds.forEach(function(id){
+            var lv = local[id], cv = data[id];
+            var lt = localTs[id] || 0, ct = cloudTs[id] || 0;
+            if (lv === undefined && cv !== undefined) { mergedDU[id] = cv; mergedTs[id] = ct; }
+            else if (lv !== undefined && cv === undefined) { mergedDU[id] = lv; mergedTs[id] = lt; }
+            else if (lv === cv) { mergedDU[id] = lv; mergedTs[id] = Math.max(lt, ct); }
+            else if (lt >= ct) { mergedDU[id] = lv; mergedTs[id] = lt; }
+            else { mergedDU[id] = cv; mergedTs[id] = ct; }
+          });
+          parsed = mergedDU;
+          try { localStorage.setItem("u4du_ts", JSON.stringify(mergedTs)); } catch(_){}
+          try { localStorage.setItem("u4du_prev", JSON.stringify(mergedDU)); } catch(_){}
+        } else {
+          parsed = Object.assign({}, local, data);
+        }
         localStorage.setItem(key, JSON.stringify(parsed));
         anyUpdate = true;
       } catch(e) { console.warn("fbLoad err for " + key, e.message); }
     }
     if (anyUpdate && typeof window.cases !== "undefined") {
-      const ncArr = JSON.parse(localStorage.getItem("u4nc") || "[]");
+      const ncArr = (typeof window.__toArrSafe === "function" ? window.__toArrSafe(localStorage.getItem("u4nc")) : (function(){ try { var v = JSON.parse(localStorage.getItem("u4nc") || "[]"); if (Array.isArray(v)) return v; if (v && typeof v === "object") { var ks = Object.keys(v).filter(function(k){return !isNaN(parseInt(k));}).sort(function(a,b){return parseInt(a)-parseInt(b);}); return ks.map(function(k){return v[k];}); } return []; } catch(_){ return []; } })());
       window.cases = window.cases.filter(function(c) { return !String(c.id).startsWith("NC"); });
       ncArr.forEach(function(nc) {
         if (!window.cases.find(function(c) { return c.id === nc.id; })) window.cases.push(nc);
@@ -1424,7 +1473,7 @@ setInterval(chkN,30*60000);
       unlock();
     } else {
       var err = document.getElementById('ulg-err');
-      err.textContent = 'Ã¢ÂÂ Wrong password. Please try again.';
+      err.textContent = 'ÃÂ¢ÃÂÃÂ Wrong password. Please try again.';
       document.getElementById('ulg-pwd').value='';
       document.getElementById('ulg-pwd').focus();
     }
