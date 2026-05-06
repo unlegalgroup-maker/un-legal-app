@@ -1799,3 +1799,113 @@ document.addEventListener('DOMContentLoaded',function(){
 <!-- END: Task Classification Feature -->
 </body>
 </html>
+
+
+<script>
+/* === Auto Last Hearing Date Feature === */
+/* When Next Date of Hearing is changed, automatically move the previous Next Date
+   into the Last Hearing Date column — but only if the previous date was today or earlier
+   (i.e., a hearing that actually occurred), never for typo corrections of future dates. */
+(function(){
+  'use strict';
+  function ready(fn){ if(document.readyState!=='loading') fn(); else document.addEventListener('DOMContentLoaded',fn); }
+  ready(function(){
+    setTimeout(init, 200);
+  });
+
+  function todayISO(){
+    var d=new Date();
+    return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  }
+  function isNotFuture(s){
+    if(!s||typeof s!=='string') return false;
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
+    return s <= todayISO();
+  }
+  function fmt(iso){
+    if(!iso) return '';
+    var months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    var p=iso.split('-');
+    return p[2]+'-'+months[parseInt(p[1],10)-1]+'-'+p[0];
+  }
+  function toast(msg){
+    var t=document.getElementById('autoLDToast');
+    if(!t){
+      t=document.createElement('div');
+      t.id='autoLDToast';
+      t.style.cssText='position:fixed;bottom:20px;right:20px;background:#1e3a5f;color:#fff;padding:10px 16px;border-radius:6px;font-size:13px;z-index:99999;box-shadow:0 4px 12px rgba(0,0,0,0.3);max-width:320px;line-height:1.4;transition:opacity 0.5s;';
+      document.body.appendChild(t);
+    }
+    t.textContent=msg;
+    t.style.opacity='1';
+    clearTimeout(t._h);
+    t._h=setTimeout(function(){ t.style.opacity='0'; }, 3500);
+  }
+
+  function applyAutoLD(caseId, prevNd, newNd){
+    if(!prevNd) return false;
+    if(!isNotFuture(prevNd)) return false;
+    if(prevNd === newNd) return false;
+    var c = window.cases && window.cases.find(function(x){ return x.id === caseId; });
+    if(!c) return false;
+    var oldLD = c.ld || '';
+    c.ld = prevNd;
+    if(!window.caseEdits) window.caseEdits = {};
+    if(!window.caseEdits[caseId]) window.caseEdits[caseId] = {};
+    window.caseEdits[caseId].ld = prevNd;
+    try { localStorage.setItem('u4ce', JSON.stringify(window.caseEdits)); } catch(e){}
+    if(typeof window.fbSave === 'function'){ try { window.fbSave('u4ce', window.caseEdits); } catch(e){} }
+    toast('Last hearing date set to ' + fmt(prevNd) + (oldLD ? ' (was ' + fmt(oldLD) + ')' : ''));
+    return true;
+  }
+
+  function init(){
+    // Wrap chgHDate (Hearings Calendar list view inline date change)
+    if (typeof window.chgHDate === 'function' && !window.chgHDate.__autoLDWrapped){
+      var origChg = window.chgHDate;
+      window.chgHDate = function(id, newDate){
+        var c = window.cases && window.cases.find(function(x){ return x.id === id; });
+        var prevNd = c ? (c.nd || '') : '';
+        var ret = origChg.apply(this, arguments);
+        try { applyAutoLD(id, prevNd, newDate); } catch(e){}
+        return ret;
+      };
+      window.chgHDate.__autoLDWrapped = true;
+    }
+
+    // Wrap saveAllEdits (case modal save) — multiple fields could change at once
+    if (typeof window.saveAllEdits === 'function' && !window.saveAllEdits.__autoLDWrapped){
+      var origSave = window.saveAllEdits;
+      window.saveAllEdits = function(){
+        // Snapshot prev nd values for all currently-edited cases BEFORE saving
+        var snapshot = {};
+        if (window.cases) {
+          window.cases.forEach(function(c){ if(c && c.id) snapshot[c.id] = c.nd || ''; });
+        }
+        var ret = origSave.apply(this, arguments);
+        // After save, compare and auto-copy where applicable
+        try {
+          if (window.cases) {
+            window.cases.forEach(function(c){
+              if(!c || !c.id) return;
+              var prev = snapshot[c.id];
+              var now = c.nd || '';
+              if (prev !== now) applyAutoLD(c.id, prev, now);
+            });
+          }
+        } catch(e){}
+        return ret;
+      };
+      window.saveAllEdits.__autoLDWrapped = true;
+    }
+  }
+
+  // Also re-run init periodically in case scripts load late (cheap safety net)
+  var tries=0;
+  var iv=setInterval(function(){
+    tries++;
+    init();
+    if (tries>20 || (window.chgHDate && window.chgHDate.__autoLDWrapped && window.saveAllEdits && window.saveAllEdits.__autoLDWrapped)) clearInterval(iv);
+  }, 500);
+})();
+</script>
