@@ -293,7 +293,7 @@ document.querySelectorAll(".pg").forEach(function(x){x.classList.remove("a")});
 $("pg-"+p).classList.add("a");
 document.querySelectorAll(".ni").forEach(function(x){x.classList.remove("a")});
 if(event&&event.target)event.target.classList.add("a");
-var T={dash:"Dashboard",cases:"All Cases ("+cases.length+")",hear:"Hearings Calendar",cl:"Cause List",nodt:"No-Date Cases",task:"Daily Tasks",ord:"Orders & Files",comm:"Communications",crem:"Client Reminders",newc:"Add New Case / Fresh Matter",bulk:"Bulk Update",ntc:"Notices",share:"Share & Download"};
+var T={dash:"Dashboard",cases:"All Cases ("+cases.length+")",hear:"Hearings Calendar",cl:"Cause List",nodt:"No-Date Cases",task:"Daily Tasks",cmpl:"Compliance Sheet",ord:"Orders & Files",comm:"Communications",crem:"Client Reminders",newc:"Add New Case / Fresh Matter",bulk:"Bulk Update",ntc:"Notices",share:"Share & Download"};
 $("pt").textContent=T[p]||p;
 if(p==="hear")renderH();if(p==="cl")buildCLD();if(p==="nodt")renderND();if(p==="ord")renderO();if(p==="comm")renderCM();if(p==="crem")renderCR();if(p==="newc")renderNC();if(p==="bulk")renderBulk();if(p==="ntc")renderNotices();if(p==="share")renderShare();
 }
@@ -1369,7 +1369,7 @@ setInterval(chkN,30*60000);
       const ceCloud = JSON.parse(localStorage.getItem("u4ce") || "{}");
       window.caseEdits = ceCloud;
       Object.keys(ceCloud).forEach(function(id) {
-        var c = window.cases.find(function(x) { return x.id === id; });
+        var c = window.cases.find(function(x) { return String(x.sn) === id; });
         if (c) {
           var ed = ceCloud[id];
           Object.keys(ed).forEach(function(k) {
@@ -1381,7 +1381,7 @@ setInterval(chkN,30*60000);
       const duCloud = JSON.parse(localStorage.getItem("u4du") || "{}");
       window.dateUpdates = duCloud;
       Object.keys(duCloud).forEach(function(id) {
-        var c = window.cases.find(function(x) { return x.id === id; });
+        var c = window.cases.find(function(x) { return String(x.sn) === id; });
         if (c && duCloud[id]) { c.nd = duCloud[id]; }
       });
       window.caseNotes = JSON.parse(localStorage.getItem("u4notes") || "{}");
@@ -1430,7 +1430,7 @@ setInterval(chkN,30*60000);
       window.caseEdits = merged;
       if (typeof window.cases !== "undefined") {
         Object.keys(merged).forEach(function(id) {
-          var c = window.cases.find(function(x) { return x.id === id; });
+          var c = window.cases.find(function(x) { return String(x.sn) === id; });
           if (c) {
             var ed = merged[id];
             Object.keys(ed).forEach(function(k) {
@@ -1442,7 +1442,7 @@ setInterval(chkN,30*60000);
         try {
           var __du = JSON.parse(localStorage.getItem("u4du") || "{}");
           Object.keys(__du).forEach(function(id) {
-            var c = window.cases.find(function(x) { return x.id === id; });
+            var c = window.cases.find(function(x) { return String(x.sn) === id; });
             if (c && __du[id]) c.nd = __du[id];
           });
         } catch(e){}
@@ -1503,7 +1503,7 @@ setInterval(chkN,30*60000);
       window.dateUpdates = merged;
       if (typeof window.cases !== "undefined") {
         Object.keys(merged).forEach(function(id) {
-          var c = window.cases.find(function(x) { return x.id === id; });
+          var c = window.cases.find(function(x) { return String(x.sn) === id; });
           if (c && merged[id]) c.nd = merged[id];
         });
       }
@@ -1953,7 +1953,7 @@ document.addEventListener('DOMContentLoaded',function(){
       var m = (card.getAttribute('onclick') || '').match(/opM\(['"]([^'"]+)['"]\)/);
       if (!m) return;
       var id = m[1];
-      var c = window.cases && window.cases.find(function(x){ return x.id === id; });
+      var c = window.cases && window.cases.find(function(x){ return String(x.sn) === id; });
       if (!c) return;
       var def = SUB_STATUS[c[CLS_KEY]];
       // Remove any previous control
@@ -1989,7 +1989,7 @@ document.addEventListener('DOMContentLoaded',function(){
 
       // Find the best insertion point: right after the header row so it
       // sits just under the case title/badge, above the field list.
-      var head = card.querySelector('.cc-head, .ch, .cc > div');
+      var head = card.querySelector('.hd');
       if (head && head.parentNode === card) {
         head.parentNode.insertBefore(row, head.nextSibling);
       } else {
@@ -2055,7 +2055,7 @@ document.addEventListener('DOMContentLoaded',function(){
       if (!SUB_STATUS[cls]) return false;
       if (filter && cls !== filter) return false;
       if (search) {
-        var hay = ((c.tt || c.t || '') + ' ' + (c.sn || '') + ' ' + (c.cn || '')).toLowerCase();
+        var hay = ((c.pn || '') + ' ' + (c.op || '') + ' ' + (c.sn || '') + ' ' + (c.cn || '')).toLowerCase();
         if (hay.indexOf(search) === -1) return false;
       }
       return true;
@@ -2111,7 +2111,7 @@ document.addEventListener('DOMContentLoaded',function(){
         return '<option value="' + o + '"' + (o === cur ? ' selected' : '') + '>' + o + '</option>';
       }).join('');
       html += '<tr style="border-top:1px solid #e2e5e9;">'
-        +   '<td style="padding:10px 12px;font-weight:600;color:#1a2744;">' + (c.sn || '') + '. ' + escapeHtml(c.tt || c.t || '(untitled)') + '</td>'
+        +   '<td style="padding:10px 12px;font-weight:600;color:#1a2744;">' + (c.sn || '') + '. ' + escapeHtml(c.pn || c.op || '(untitled)') + '</td>'
         +   '<td style="padding:10px 12px;">' + c[CLS_KEY] + '</td>'
         +   '<td style="padding:10px 12px;"><span style="background:' + color + ';color:#fff;padding:3px 9px;border-radius:10px;font-size:11px;font-weight:700;">' + cur + '</span></td>'
         +   '<td style="padding:10px 12px;color:#718096;">' + when + '</td>'
@@ -2241,7 +2241,7 @@ document.addEventListener('DOMContentLoaded',function(){
     if (typeof window.chgHDate === 'function' && !window.chgHDate.__autoLDWrapped){
       var origChg = window.chgHDate;
       window.chgHDate = function(id, newDate){
-        var c = window.cases && window.cases.find(function(x){ return x.id === id; });
+        var c = window.cases && window.cases.find(function(x){ return String(x.sn) === id; });
         var prevNd = c ? (c.nd || '') : '';
         var ret = origChg.apply(this, arguments);
         try { applyAutoLD(id, prevNd, newDate); } catch(e){}
