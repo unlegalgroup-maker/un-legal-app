@@ -1369,7 +1369,7 @@ setInterval(chkN,30*60000);
       const ceCloud = JSON.parse(localStorage.getItem("u4ce") || "{}");
       window.caseEdits = ceCloud;
       Object.keys(ceCloud).forEach(function(id) {
-        var c = window.cases.find(function(x) { return String(x.sn) === id; });
+        var c = window.cases.find(function(x) { return x.id === id; });
         if (c) {
           var ed = ceCloud[id];
           Object.keys(ed).forEach(function(k) {
@@ -1381,7 +1381,7 @@ setInterval(chkN,30*60000);
       const duCloud = JSON.parse(localStorage.getItem("u4du") || "{}");
       window.dateUpdates = duCloud;
       Object.keys(duCloud).forEach(function(id) {
-        var c = window.cases.find(function(x) { return String(x.sn) === id; });
+        var c = window.cases.find(function(x) { return x.id === id; });
         if (c && duCloud[id]) { c.nd = duCloud[id]; }
       });
       window.caseNotes = JSON.parse(localStorage.getItem("u4notes") || "{}");
@@ -1430,7 +1430,7 @@ setInterval(chkN,30*60000);
       window.caseEdits = merged;
       if (typeof window.cases !== "undefined") {
         Object.keys(merged).forEach(function(id) {
-          var c = window.cases.find(function(x) { return String(x.sn) === id; });
+          var c = window.cases.find(function(x) { return x.id === id; });
           if (c) {
             var ed = merged[id];
             Object.keys(ed).forEach(function(k) {
@@ -1442,7 +1442,7 @@ setInterval(chkN,30*60000);
         try {
           var __du = JSON.parse(localStorage.getItem("u4du") || "{}");
           Object.keys(__du).forEach(function(id) {
-            var c = window.cases.find(function(x) { return String(x.sn) === id; });
+            var c = window.cases.find(function(x) { return x.id === id; });
             if (c && __du[id]) c.nd = __du[id];
           });
         } catch(e){}
@@ -1503,7 +1503,7 @@ setInterval(chkN,30*60000);
       window.dateUpdates = merged;
       if (typeof window.cases !== "undefined") {
         Object.keys(merged).forEach(function(id) {
-          var c = window.cases.find(function(x) { return String(x.sn) === id; });
+          var c = window.cases.find(function(x) { return x.id === id; });
           if (c && merged[id]) c.nd = merged[id];
         });
       }
