@@ -1797,6 +1797,383 @@ document.addEventListener('DOMContentLoaded',function(){
 })();
 </script>
 <!-- END: Task Classification Feature -->
+
+<!-- BEGIN: Compliance Sub-Status Stage 1 (added 2026-05-07) -->
+<script>
+(function(){
+  // ============================================================
+  // Stage 1: Compliance Classification Enhancement
+  //
+  // Adds editable sub-statuses under PF and Drafting Needed:
+  //   PF        -> To be Filed | Filed | To be Collected | Done
+  //   Drafting  -> To be Drafted | Done
+  //
+  // Stored on each case as:
+  //   pfst : current PF sub-status
+  //   dfst : current Drafting sub-status
+  //   clog : array of audit log entries {ts, by, field, from, to}
+  //
+  // Persistence reuses caseEdits + fbSave('u4ce').
+  //
+  // Adds an inline editable dropdown on each case card directly
+  // under the classification badge (only when classification is
+  // PF or Drafting Needed).
+  //
+  // Adds a new "Compliance Sheet" sidebar entry showing every case
+  // with active compliance, its current sub-status and last update.
+  //
+  // Designed to be additive: existing classification module is not
+  // modified. Sub-status definitions are stored as arrays so future
+  // stages can extend categories or add new sub-statuses.
+  // ============================================================
+
+  // ---- Configurable state machines ---------------------------
+  var SUB_STATUS = {
+    'PF': {
+      key: 'pfst',
+      label: 'PF Status',
+      options: ['To be Filed', 'Filed', 'To be Collected', 'Done'],
+      colors: {
+        'To be Filed':     '#e53e3e',
+        'Filed':           '#dd6b20',
+        'To be Collected': '#3182ce',
+        'Done':            '#38a169'
+      }
+    },
+    'Drafting Needed': {
+      key: 'dfst',
+      label: 'Drafting Status',
+      options: ['To be Drafted', 'Done'],
+      colors: {
+        'To be Drafted': '#dd6b20',
+        'Done':          '#38a169'
+      }
+    }
+  };
+  var CLS_KEY = 'cls';
+  var LOG_KEY = 'clog';
+
+  function defaultStatusFor(cls){
+    var def = SUB_STATUS[cls];
+    return def ? def.options[0] : null;
+  }
+
+  function getCase(sn){
+    if (!window.cases) return null;
+    return window.cases.find(function(x){ return String(x.sn) === String(sn); });
+  }
+
+  function persist(c, field, val){
+    c[field] = val;
+    if (window.caseEdits) {
+      if (!window.caseEdits[c.id]) window.caseEdits[c.id] = {};
+      window.caseEdits[c.id][field] = val;
+      try { localStorage.setItem('u4ce', JSON.stringify(window.caseEdits)); } catch(_){}
+      if (typeof window.fbSave === 'function') window.fbSave('u4ce');
+    }
+  }
+
+  function logChange(c, field, from, to){
+    if (!Array.isArray(c[LOG_KEY])) c[LOG_KEY] = [];
+    c[LOG_KEY].push({
+      ts: Date.now(),
+      field: field,
+      from: from || null,
+      to: to || null
+    });
+    persist(c, LOG_KEY, c[LOG_KEY]);
+  }
+
+  function setSubStatus(sn, val){
+    var c = getCase(sn);
+    if (!c) return;
+    var def = SUB_STATUS[c[CLS_KEY]];
+    if (!def) return;
+    var prev = c[def.key] || null;
+    if (prev === val) return;
+    persist(c, def.key, val);
+    logChange(c, def.key, prev, val);
+    safeRerender();
+  }
+
+  function ensureDefaultSubStatus(c){
+    if (!c) return false;
+    var cls = c[CLS_KEY];
+    var def = SUB_STATUS[cls];
+    if (!def) return false;
+    if (!c[def.key]) {
+      var v = defaultStatusFor(cls);
+      persist(c, def.key, v);
+      logChange(c, def.key, null, v);
+      return true;
+    }
+    return false;
+  }
+
+  function safeRerender(){
+    try { if (typeof window.renderC === 'function') window.renderC(); } catch(_){}
+    try { if (typeof window.renderH === 'function') window.renderH(); } catch(_){}
+    try { if (typeof window.renderDB === 'function') window.renderDB(); } catch(_){}
+    try { renderComplianceSheet(); } catch(_){}
+  }
+
+  // ---- Hook the existing classification flow -----------------
+  // When the classification modal sets a case to PF or Drafting,
+  // we make sure a default sub-status is initialised.
+  function watchCaseClassChanges(){
+    if (!window.cases) return;
+    // One-shot: backfill defaults for already-classified cases
+    window.cases.forEach(function(c){ ensureDefaultSubStatus(c); });
+  }
+
+  // Poll for cls changes (lightweight) so we react to the existing
+  // classification modal without modifying its code.
+  var lastSnapshot = {};
+  function snapshotAndReact(){
+    if (!window.cases) return;
+    window.cases.forEach(function(c){
+      var prev = lastSnapshot[c.id];
+      var cur = c[CLS_KEY] || '';
+      if (prev !== undefined && prev !== cur) {
+        // Classification changed - if new class needs sub-status, set default
+        if (SUB_STATUS[cur]) ensureDefaultSubStatus(c);
+        logChange(c, CLS_KEY, prev || null, cur || null);
+      }
+      lastSnapshot[c.id] = cur;
+    });
+  }
+
+  // ---- Inline sub-status dropdown injection ------------------
+  function injectSubStatusControls(){
+    var grid = document.getElementById('pg-cases');
+    if (!grid) return;
+    var cards = grid.querySelectorAll('.cc');
+    cards.forEach(function(card){
+      // identify case by onclick="opM('Cxxxx')"
+      var m = (card.getAttribute('onclick') || '').match(/opM\(['"]([^'"]+)['"]\)/);
+      if (!m) return;
+      var id = m[1];
+      var c = window.cases && window.cases.find(function(x){ return x.id === id; });
+      if (!c) return;
+      var def = SUB_STATUS[c[CLS_KEY]];
+      // Remove any previous control
+      var existing = card.querySelector('.sub-st-row');
+      if (existing) existing.remove();
+      if (!def) return;
+
+      var row = document.createElement('div');
+      row.className = 'sub-st-row';
+      row.style.cssText = 'display:flex;align-items:center;gap:6px;margin:6px 0 8px;padding:6px 8px;background:#f8f9fb;border-radius:6px;border:1px solid #e2e5e9;';
+      row.onclick = function(e){ e.stopPropagation(); };
+
+      var lab = document.createElement('span');
+      lab.textContent = def.label + ':';
+      lab.style.cssText = 'font-size:11px;color:#718096;font-weight:600;text-transform:uppercase;letter-spacing:0.3px;';
+      row.appendChild(lab);
+
+      var cur = c[def.key] || defaultStatusFor(c[CLS_KEY]);
+      var sel = document.createElement('select');
+      sel.style.cssText = 'flex:1;padding:4px 6px;border-radius:4px;border:1px solid #cbd5e0;font-size:12px;font-weight:600;background:' + (def.colors[cur] || '#888') + ';color:#fff;cursor:pointer;';
+      def.options.forEach(function(opt){
+        var o = document.createElement('option');
+        o.value = opt; o.textContent = opt;
+        if (opt === cur) o.selected = true;
+        o.style.background = '#fff'; o.style.color = '#2d3748';
+        sel.appendChild(o);
+      });
+      sel.onchange = function(){
+        sel.style.background = def.colors[this.value] || '#888';
+        setSubStatus(c.sn, this.value);
+      };
+      row.appendChild(sel);
+
+      // Find the best insertion point: right after the header row so it
+      // sits just under the case title/badge, above the field list.
+      var head = card.querySelector('.cc-head, .ch, .cc > div');
+      if (head && head.parentNode === card) {
+        head.parentNode.insertBefore(row, head.nextSibling);
+      } else {
+        card.insertBefore(row, card.firstChild.nextSibling);
+      }
+    });
+  }
+
+  // Patch renderC to also inject sub-status controls + rerender sheet
+  function patchRenderC(){
+    if (typeof window.renderC !== 'function') return;
+    if (window.renderC.__subStPatched) return;
+    var orig = window.renderC;
+    window.renderC = function(){
+      var r = orig.apply(this, arguments);
+      try { snapshotAndReact(); } catch(_){}
+      try { injectSubStatusControls(); } catch(_){}
+      try { renderComplianceSheet(); } catch(_){}
+      return r;
+    };
+    window.renderC.__subStPatched = true;
+  }
+
+  // ---- Compliance Sheet page ---------------------------------
+  function ensureCompliancePage(){
+    if (document.getElementById('pg-cmpl')) return;
+    var pg = document.createElement('div');
+    pg.id = 'pg-cmpl';
+    pg.className = 'pg';
+    pg.style.padding = '20px';
+    pg.innerHTML = ''
+      + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">'
+      +   '<h2 style="font-size:20px;color:#1a2744;margin:0;">Compliance Sheet</h2>'
+      +   '<div style="display:flex;gap:8px;align-items:center;">'
+      +     '<select id="cmpl-filter" style="padding:6px 10px;border-radius:6px;border:1px solid #cbd5e0;font-size:13px;">'
+      +       '<option value="">All Compliance Types</option>'
+      +       '<option value="PF">PF Only</option>'
+      +       '<option value="Drafting Needed">Drafting Only</option>'
+      +     '</select>'
+      +     '<input id="cmpl-search" type="text" placeholder="Search case…" style="padding:6px 10px;border-radius:6px;border:1px solid #cbd5e0;font-size:13px;width:180px;" />'
+      +   '</div>'
+      + '</div>'
+      + '<div id="cmpl-summary" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;"></div>'
+      + '<div id="cmpl-table-wrap" style="background:#fff;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,0.06);overflow:auto;"></div>';
+    var content = document.querySelector('.content') || document.querySelector('.main') || document.body;
+    content.appendChild(pg);
+
+    // Hook filter inputs
+    var f = pg.querySelector('#cmpl-filter');
+    var s = pg.querySelector('#cmpl-search');
+    if (f) f.onchange = renderComplianceSheet;
+    if (s) s.oninput = renderComplianceSheet;
+  }
+
+  function renderComplianceSheet(){
+    var pg = document.getElementById('pg-cmpl');
+    if (!pg || !window.cases) return;
+    var filter = (pg.querySelector('#cmpl-filter') || {}).value || '';
+    var search = ((pg.querySelector('#cmpl-search') || {}).value || '').toLowerCase().trim();
+
+    var rows = window.cases.filter(function(c){
+      var cls = c[CLS_KEY];
+      if (!SUB_STATUS[cls]) return false;
+      if (filter && cls !== filter) return false;
+      if (search) {
+        var hay = ((c.tt || c.t || '') + ' ' + (c.sn || '') + ' ' + (c.cn || '')).toLowerCase();
+        if (hay.indexOf(search) === -1) return false;
+      }
+      return true;
+    });
+
+    // Summary tiles
+    var summary = pg.querySelector('#cmpl-summary');
+    if (summary) {
+      var counts = {};
+      rows.forEach(function(c){
+        var def = SUB_STATUS[c[CLS_KEY]];
+        var k = c[CLS_KEY] + '|' + (c[def.key] || defaultStatusFor(c[CLS_KEY]));
+        counts[k] = (counts[k] || 0) + 1;
+      });
+      summary.innerHTML = '';
+      Object.keys(counts).sort().forEach(function(k){
+        var parts = k.split('|');
+        var def = SUB_STATUS[parts[0]];
+        var color = (def && def.colors[parts[1]]) || '#888';
+        var tile = document.createElement('div');
+        tile.style.cssText = 'background:#fff;border-radius:8px;padding:10px 14px;border-left:4px solid ' + color + ';box-shadow:0 1px 3px rgba(0,0,0,0.06);min-width:160px;';
+        tile.innerHTML = '<div style="font-size:11px;color:#718096;font-weight:600;text-transform:uppercase;">' + parts[0] + ' · ' + parts[1] + '</div>'
+                       + '<div style="font-size:22px;font-weight:800;color:#1a2744;margin-top:2px;">' + counts[k] + '</div>';
+        summary.appendChild(tile);
+      });
+      if (!summary.children.length) {
+        summary.innerHTML = '<div style="color:#718096;font-size:13px;padding:8px;">No active compliance items.</div>';
+      }
+    }
+
+    // Table
+    var wrap = pg.querySelector('#cmpl-table-wrap');
+    if (!wrap) return;
+    if (!rows.length) {
+      wrap.innerHTML = '<div style="padding:30px;text-align:center;color:#718096;">No matching compliance items.</div>';
+      return;
+    }
+    var html = '<table style="width:100%;border-collapse:collapse;font-size:13px;">'
+      + '<thead><tr style="background:#f0f2f5;color:#2d3748;text-align:left;">'
+      +   '<th style="padding:10px 12px;font-weight:700;">Case</th>'
+      +   '<th style="padding:10px 12px;font-weight:700;">Compliance Type</th>'
+      +   '<th style="padding:10px 12px;font-weight:700;">Current Status</th>'
+      +   '<th style="padding:10px 12px;font-weight:700;">Last Updated</th>'
+      +   '<th style="padding:10px 12px;font-weight:700;">Update</th>'
+      + '</tr></thead><tbody>';
+    rows.forEach(function(c){
+      var def = SUB_STATUS[c[CLS_KEY]];
+      var cur = c[def.key] || defaultStatusFor(c[CLS_KEY]);
+      var color = def.colors[cur] || '#888';
+      var lastLog = (c[LOG_KEY] || []).filter(function(l){ return l.field === def.key; }).slice(-1)[0];
+      var when = lastLog ? new Date(lastLog.ts).toLocaleString() : '—';
+      var optsHtml = def.options.map(function(o){
+        return '<option value="' + o + '"' + (o === cur ? ' selected' : '') + '>' + o + '</option>';
+      }).join('');
+      html += '<tr style="border-top:1px solid #e2e5e9;">'
+        +   '<td style="padding:10px 12px;font-weight:600;color:#1a2744;">' + (c.sn || '') + '. ' + escapeHtml(c.tt || c.t || '(untitled)') + '</td>'
+        +   '<td style="padding:10px 12px;">' + c[CLS_KEY] + '</td>'
+        +   '<td style="padding:10px 12px;"><span style="background:' + color + ';color:#fff;padding:3px 9px;border-radius:10px;font-size:11px;font-weight:700;">' + cur + '</span></td>'
+        +   '<td style="padding:10px 12px;color:#718096;">' + when + '</td>'
+        +   '<td style="padding:10px 12px;"><select data-sn="' + c.sn + '" class="cmpl-row-sel" style="padding:4px 6px;border-radius:4px;border:1px solid #cbd5e0;font-size:12px;">' + optsHtml + '</select></td>'
+        + '</tr>';
+    });
+    html += '</tbody></table>';
+    wrap.innerHTML = html;
+    wrap.querySelectorAll('.cmpl-row-sel').forEach(function(sel){
+      sel.onchange = function(){
+        setSubStatus(this.getAttribute('data-sn'), this.value);
+      };
+    });
+  }
+
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, function(c){
+      return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];
+    });
+  }
+
+  // ---- Sidebar navigation entry ------------------------------
+  function ensureSidebarLink(){
+    if (document.getElementById('ni-cmpl')) return;
+    // Find the existing nav by looking for the Daily Tasks link
+    var nav = document.querySelector('.sb');
+    if (!nav) return;
+    var anchorLink = null;
+    nav.querySelectorAll('a.ni').forEach(function(a){
+      if ((a.textContent || '').toLowerCase().indexOf('daily tasks') !== -1) anchorLink = a;
+    });
+    if (!anchorLink) anchorLink = nav.querySelector('a.ni');
+    if (!anchorLink) return;
+    var link = document.createElement('a');
+    link.id = 'ni-cmpl';
+    link.className = 'ni';
+    link.setAttribute('onclick', "go('cmpl')");
+    link.innerHTML = '\u2705 Compliance Sheet';
+    anchorLink.parentNode.insertBefore(link, anchorLink.nextSibling);
+  }
+
+  // ---- Boot --------------------------------------------------
+  function boot(){
+    if (!window.cases) { setTimeout(boot, 300); return; }
+    ensureCompliancePage();
+    ensureSidebarLink();
+    watchCaseClassChanges();
+    // initial snapshot of cls values
+    window.cases.forEach(function(c){ lastSnapshot[c.id] = c[CLS_KEY] || ''; });
+    patchRenderC();
+    try { window.renderC && window.renderC(); } catch(_){}
+    renderComplianceSheet();
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', boot);
+  } else {
+    setTimeout(boot, 100);
+  }
+})();
+</script>
+<!-- END: Compliance Sub-Status Stage 1 -->
+
 </body>
 </html>
 
