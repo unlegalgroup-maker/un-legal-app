@@ -358,7 +358,7 @@ function sendWAW(n){var ph=n===1?PH1:PH2;window.open("https://wa.me/91"+ph+"?tex
 
 // ===== CASES =====
 function renderC(){
-var _ntcB=$("ntc-cnt");if(_ntcB&&window.cases)_ntcB.textContent=(window.cases).filter(function(c){return(c.ct||"").toUpperCase()==="NOTICE";}).length;var _acB=$("ac-cnt");if(_acB&&window.cases)_acB.textContent=window.cases.length;
+var _ntcB=$("ntc-cnt");if(_ntcB&&window.cases)_ntcB.textContent=(window.cases).filter(function(c){return(c.ct||"").toUpperCase()==="NOTICE";}).length;var _acB=$("ac-cnt");if(_acB&&window.cases){var _ntcCount=window.cases.filter(function(c){return(c.ct||"").toUpperCase()==="NOTICE";}).length;_acB.textContent=(window._cfIncNtc?window.cases.length:(window.cases.length-_ntcCount));}
 var ctOpts=["All Types","138 NI ACT","CIVIL","CRIMINAL","COMMERCIAL SUIT","ARBITRATION","CONSUMER","FAMILY","LABOUR","RERA","NCLT","NOTICE","EXECUTION","TRANSFER CERTIFICATE","PRE-MEDIATION APPLICATION","TM HEARING","OTHER"];
 var stOpts=["All Status","FRESH MATTER","IN PROGRESS","DISPOSED","STAYED","PART HEARD","PUT UP FOR ARGUMENTS","PUT UP FOR FINAL ARGUMENTS","ADJOURNED","SETTLED","WARRANTS","ORDERS/JUDGMENT","WITHDRAWN/DISPOSED OFF","DECREED"];
 var h='<div class="tl" style="flex-wrap:wrap;gap:8px">';
@@ -376,6 +376,7 @@ h+='<input type="text" id="cf_jf" placeholder="👨‍⚖️ Judge" value="'+(wi
 h+='<input type="text" id="cf_crf" placeholder="🏛 Court" value="'+(window._cfCrf||'')+'" oninput="window._cfCrf=this.value;clearTimeout(window._crfT);window._crfT=setTimeout(renderC,400)" style="padding:6px 10px;border-radius:8px;border:1px solid var(--bd);font-size:12px;width:130px" title="Filter by Court Name">';
 h+='</div>';
 var fl=cases.slice();
+if(!window._cfIncNtc){fl=fl.filter(function(c){return(c.ct||"").toUpperCase()!=="NOTICE";});}
 if(window._cfCt&&window._cfCt!=="All Types")fl=fl.filter(function(c){return c.ct===window._cfCt});
 if(window._cfSt&&window._cfSt!=="All Status")fl=fl.filter(function(c){return(c.st||"").toUpperCase().indexOf(window._cfSt.toUpperCase())>=0});
 if(window._cfJf&&window._cfJf.trim())fl=fl.filter(function(c){return(c.jn||"").toLowerCase().indexOf(window._cfJf.toLowerCase().trim())>=0;});
@@ -389,10 +390,11 @@ else if(so==="Party Name A→Z"){fl.sort(function(a,b){return(a.pn||"").localeCo
 else if(so==="Party Name Z→A"){fl.sort(function(a,b){return(b.pn||"").localeCompare(a.pn||"")})}
 else if(so==="Total Amount ↓"){fl.sort(function(a,b){return(parseFloat(b.ta)||0)-(parseFloat(a.ta)||0)})}
 var isFiltered=(window._cfCt&&window._cfCt!=="All Types")||(window._cfSt&&window._cfSt!=="All Status")||cs;
-h+='<div style="font-size:11px;color:var(--tx2);margin-bottom:8px">';
-if(isFiltered){h+='<span style="color:var(--nv);font-weight:600">'+fl.length+' results</span> (filtered from '+cases.length+' total)';}
-else{h+=fl.length+' of '+cases.length+' cases';}
-h+='</div>';
+h+='<div style="font-size:11px;color:var(--tx2);margin-bottom:8px;display:flex;align-items:center;gap:10px;flex-wrap:wrap"><label style="display:inline-flex;align-items:center;gap:5px;cursor:pointer;user-select:none"><input type="checkbox" id="cf_inc_ntc" '+(window._cfIncNtc?'checked':'')+' onchange="window._cfIncNtc=this.checked;cp=1;renderC()"> <span>Include Notices</span></label><span style="flex:1">
+var _baseCnt=window._cfIncNtc?cases.length:cases.filter(function(c){return(c.ct||"").toUpperCase()!=="NOTICE";}).length;
+if(isFiltered){h+='<span style="color:var(--nv);font-weight:600">'+fl.length+' results</span> (filtered from '+_baseCnt+' total'+(window._cfIncNtc?'':', notices excluded')+')';}
+else{h+=fl.length+' of '+_baseCnt+' '+(window._cfIncNtc?'cases (incl. notices)':'litigation cases');}
+h+='</span></div>';
 var st2=(cp-1)*PP;var pg=fl.slice(st2,st2+PP);
 h+='<div class="cg">';
 pg.forEach(function(c){
