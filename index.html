@@ -390,7 +390,7 @@ else if(so==="Party Name A→Z"){fl.sort(function(a,b){return(a.pn||"").localeCo
 else if(so==="Party Name Z→A"){fl.sort(function(a,b){return(b.pn||"").localeCompare(a.pn||"")})}
 else if(so==="Total Amount ↓"){fl.sort(function(a,b){return(parseFloat(b.ta)||0)-(parseFloat(a.ta)||0)})}
 var isFiltered=(window._cfCt&&window._cfCt!=="All Types")||(window._cfSt&&window._cfSt!=="All Status")||cs;
-h+='<div style="font-size:11px;color:var(--tx2);margin-bottom:8px;display:flex;align-items:center;gap:10px;flex-wrap:wrap"><label style="display:inline-flex;align-items:center;gap:5px;cursor:pointer;user-select:none"><input type="checkbox" id="cf_inc_ntc" '+(window._cfIncNtc?'checked':'')+' onchange="window._cfIncNtc=this.checked;cp=1;renderC()"> <span>Include Notices</span></label><span style="flex:1">
+h+='<div style="font-size:11px;color:var(--tx2);margin-bottom:8px;display:flex;align-items:center;gap:10px;flex-wrap:wrap"><label style="display:inline-flex;align-items:center;gap:5px;cursor:pointer;user-select:none"><input type="checkbox" id="cf_inc_ntc" '+(window._cfIncNtc?'checked':'')+' onchange="window._cfIncNtc=this.checked;cp=1;renderC()"> <span>Include Notices</span></label><span style="flex:1">';
 var _baseCnt=window._cfIncNtc?cases.length:cases.filter(function(c){return(c.ct||"").toUpperCase()!=="NOTICE";}).length;
 if(isFiltered){h+='<span style="color:var(--nv);font-weight:600">'+fl.length+' results</span> (filtered from '+_baseCnt+' total'+(window._cfIncNtc?'':', notices excluded')+')';}
 else{h+=fl.length+' of '+_baseCnt+' '+(window._cfIncNtc?'cases (incl. notices)':'litigation cases');}
