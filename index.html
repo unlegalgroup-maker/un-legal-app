@@ -307,13 +307,13 @@ function renderDB(){
 var ts=todayStr();
 var tmS=new Date();tmS.setDate(tmS.getDate()+1);var tm=tmS.getFullYear()+"-"+String(tmS.getMonth()+1).padStart(2,"0")+"-"+String(tmS.getDate()).padStart(2,"0");
 var wk=new Date();wk.setDate(wk.getDate()+7);var wkS=wk.getFullYear()+"-"+String(wk.getMonth()+1).padStart(2,"0")+"-"+String(wk.getDate()).padStart(2,"0");
-var upcoming=cases.filter(function(c){return isVD(c.nd)&&c.nd>=ts});
-var todayC=cases.filter(function(c){return c.nd===ts});
-var tmC=cases.filter(function(c){return c.nd===tm});
-var wkC=cases.filter(function(c){return isVD(c.nd)&&c.nd>tm&&c.nd<=wkS});
-var tc=0,rc=0,dc=0;cases.forEach(function(c){tc+=(c.ta||0);rc+=(c.ra||0);var _st=(window.caseEdits&&window.caseEdits[c.id]&&window.caseEdits[c.id].st)||c.st||"";if(_st&&_st.indexOf("Disposed")>-1)dc++;});
+var litCases=cases.filter(function(c){return (c.ct||"").toUpperCase()!=="NOTICE"});var notices=cases.filter(function(c){return (c.ct||"").toUpperCase()==="NOTICE"});var upcoming=litCases.filter(function(c){return isVD(c.nd)&&c.nd>=ts});
+var todayC=litCases.filter(function(c){return c.nd===ts});
+var tmC=litCases.filter(function(c){return c.nd===tm});
+var wkC=litCases.filter(function(c){return isVD(c.nd)&&c.nd>tm&&c.nd<=wkS});
+var tc=0,rc=0,dc=0;litCases.forEach(function(c){tc+=(c.ta||0);rc+=(c.ra||0);var _st=(window.caseEdits&&window.caseEdits[c.id]&&window.caseEdits[c.id].st)||c.st||"";if(_st&&_st.indexOf("Disposed")>-1)dc++;});
 var h='<div class="sts">';
-h+='<div class="st"><div class="l">Total Cases</div><div class="v">'+cases.length+'</div></div>';
+h+='<div class="st"><div class="l">Total Cases</div><div class="v">'+litCases.length+'</div></div>';
 h+='<div class="st" style="border-left-color:var(--gn)"><div class="l">Today</div><div class="v">'+todayC.length+'</div></div>';
 h+='<div class="st" style="border-left-color:var(--rd)"><div class="l">Tomorrow</div><div class="v">'+tmC.length+'</div></div>';
 h+='<div class="st" style="border-left-color:var(--or)"><div class="l">This Week</div><div class="v">'+wkC.length+'</div></div>';
@@ -351,7 +351,7 @@ var sorted=upcoming.sort(function(a,b){return a.nd<b.nd?-1:a.nd>b.nd?1:0}).slice
 sorted.forEach(function(c){var d=dd(c.nd);var cl=d===0?"t":d===1?"u":d<=7?"w":"";
 h+='<div class="ai '+cl+'"><b>'+FD(c.nd)+'</b> '+F(c.pn)+' vs '+F(c.op)+'<div class="m">Case: '+F(c.cn)+' | CNR: '+F(c.crn)+' | Judge: '+F(c.jn)+' | Status: '+F(c.st)+'</div></div>'});
 h+='</div>';
-$("pg-dash").innerHTML=h;
+if(notices.length){var nSent=0,nReply=0,nNoR=0,nFC=0,nSet=0,nFresh=0;notices.forEach(function(c){var s=(c.st||"").toLowerCase();if(s.indexOf("reply received")>-1)nReply++;else if(s.indexOf("no reply")>-1||s.indexOf("expired")>-1)nNoR++;else if(s.indexOf("filed in court")>-1)nFC++;else if(s.indexOf("settled")>-1||s.indexOf("resolved")>-1)nSet++;else if(s.indexOf("sent")>-1)nSent++;else nFresh++;});h+='<div class="ab" style="margin-top:14px"><h3>&#128238; Notices <span class="cn">'+notices.length+'</span></h3></div>';h+='<div class="sts">';h+='<div class="st"><div class="l">Total Notices</div><div class="v">'+notices.length+'</div></div>';h+='<div class="st" style="border-left-color:#2196f3"><div class="l">Pending Reply</div><div class="v">'+nSent+'</div></div>';h+='<div class="st" style="border-left-color:#4caf50"><div class="l">Reply Received</div><div class="v">'+nReply+'</div></div>';h+='<div class="st" style="border-left-color:#f44336"><div class="l">No Reply / Expired</div><div class="v">'+nNoR+'</div></div>';h+='<div class="st" style="border-left-color:#9c27b0"><div class="l">Filed in Court</div><div class="v">'+nFC+'</div></div>';h+='<div class="st" style="border-left-color:#4caf50"><div class="l">Settled / Resolved</div><div class="v">'+nSet+'</div></div>';h+='</div>';var attn=notices.filter(function(c){var s=(c.st||"").toLowerCase();var pending=!(s.indexOf("reply received")>-1||s.indexOf("settled")>-1||s.indexOf("resolved")>-1||s.indexOf("filed in court")>-1);var dl=c.dln||c.nd||"";return pending&&isVD(dl)&&dl<=tm;});if(attn.length){h+='<div class="ab"><h3>&#9888;&#65039; Notices Needing Attention <span class="cn">'+attn.length+'</span></h3>';attn.sort(function(a,b){return (a.dln||a.nd||"")<(b.dln||b.nd||"")?-1:1;}).forEach(function(c){var dl=c.dln||c.nd||"";var od=isVD(dl)&&dl<ts;h+='<div class="ai '+(od?"t":"u")+'"><b>'+FD(dl)+(od?" (Overdue)":"")+'</b> '+F(c.pn)+' vs '+F(c.op)+'<div class="m">Ref: '+F(c.nr)+' | Status: '+F(c.st)+'</div></div>';});h+='</div>';}}$("pg-dash").innerHTML=h;
 }
 function sendWA(n){var ph=n===1?PH1:PH2;window.open("https://wa.me/91"+ph+"?text="+encodeURIComponent(window._waT))}
 function sendWAW(n){var ph=n===1?PH1:PH2;window.open("https://wa.me/91"+ph+"?text="+encodeURIComponent(window._waW))}
