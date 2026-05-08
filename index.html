@@ -1066,7 +1066,7 @@ function renderBulk(){
 var h='<div class="ab"><h3>&#128197; Bulk Update</h3>';
 h+='<p style="font-size:11px;color:var(--tx2);margin-bottom:12px">Search and select multiple cases, then set one date to update all at once.</p>';
 h+='<div class="tl" style="flex-wrap:wrap;gap:8px;margin-bottom:8px">';
-h+='<input type="text" class="si" style="flex:1;min-width:200px" id="blk-srch" placeholder="Search by party name, CNR, case no..." oninput="renderBulkList()">';
+h+='<input type="text" class="si" style="flex:1;min-width:200px" id="blk-srch" placeholder="Search by party, CNR, case no, judge..." oninput="renderBulkList()">';
 h+='<input type="date" id="blk-date" style="padding:8px 12px;border-radius:8px;border:1px solid var(--bd);font-size:12px">';
 h+='<input type="text" id="blk-judge" placeholder="New Judge Name (optional)" style="padding:8px 12px;border-radius:8px;border:1px solid var(--bd);font-size:12px;margin-left:8px;width:220px">';
 h+='<button class="btn bp" onclick="applyBulkDate()" style="padding:8px 18px;font-size:12px">&#10004; Update Selected</button>';
@@ -1079,7 +1079,7 @@ renderBulkList();
 function renderBulkList(){
 var q=(document.getElementById("blk-srch")||{value:""}).value.trim().toLowerCase();
 var fl=cases.slice();
-if(q)fl=fl.filter(function(c){return[c.pn,c.op,c.cn,c.crn].join(" ").toLowerCase().indexOf(q)>=0;});
+if(q)fl=fl.filter(function(c){return[c.pn,c.op,c.cn,c.crn,c.jn||"",c.crt||""].join(" ").toLowerCase().indexOf(q)>=0;});
 fl=fl.slice(0,150);
 var h='<table style="width:100%;border-collapse:collapse;font-size:11px">';
 h+='<tr style="background:var(--nv);color:#fff"><th style="padding:6px 8px;width:30px"></th><th style="padding:6px 8px;text-align:left">#</th><th style="padding:6px 8px;text-align:left">Party Name</th><th style="padding:6px 8px;text-align:left">Vs</th><th style="padding:6px 8px;text-align:left">CNR</th><th style="padding:6px 8px;text-align:left">Current Next Date</th></tr>';
