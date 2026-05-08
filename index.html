@@ -434,7 +434,7 @@ if(c){var ed=caseEdits[id];Object.keys(ed).forEach(function(k){
 })}
 });
 // [FIX] Apply dateUpdates LAST so it wins for the 'nd' field (canonical store for next hearing date)
-Object.keys(dateUpdates).forEach(function(id){var c=cases.find(function(x){return x.id===id});if(c && dateUpdates[id])c.nd=dateUpdates[id]});
+Object.keys(dateUpdates).forEach(function(id){if(id==="_ts"||id==="_arr")return;var c=cases.find(function(x){return x.id===id});if(c && dateUpdates[id]!==undefined)c.nd=dateUpdates[id]||""});
 /* [STATUS-DROPDOWN] Normalize all case status values to canonical dropdown options at boot. */
 (function(){
   try {
@@ -460,7 +460,7 @@ Object.keys(dateUpdates).forEach(function(id){var c=cases.find(function(x){retur
 })();
 
 // [FIX] Self-heal stale caseEdits[id].nd that contradict dateUpdates - prevents future regression
-(function(){var changed=false;Object.keys(dateUpdates).forEach(function(id){if(caseEdits[id] && caseEdits[id].nd && caseEdits[id].nd!==dateUpdates[id]){caseEdits[id].nd=dateUpdates[id];changed=true;}});if(changed){try{localStorage.setItem("u4ce",JSON.stringify(caseEdits));if(typeof fbSave==="function")fbSave("u4ce");}catch(e){}}})();
+(function(){var changed=false;Object.keys(dateUpdates).forEach(function(id){if(id==="_ts"||id==="_arr")return;if(caseEdits[id] && caseEdits[id].nd!==undefined){delete caseEdits[id].nd;changed=true;}});if(changed){try{localStorage.setItem("u4ce",JSON.stringify(caseEdits));if(typeof fbSave==="function")fbSave("u4ce");}catch(e){}}})();
 
 /* [FIX-COUNT v2] Cleanup orphan caseEdits/dateUpdates only AFTER Firebase loads, and only if cases is non-trivial. Guards against wiping data on cold start. Does NOT call fbSave - relies on next legitimate save. */
 setTimeout(function(){
@@ -1385,8 +1385,9 @@ setInterval(chkN,30*60000);
       const duCloud = JSON.parse(localStorage.getItem("u4du") || "{}");
       window.dateUpdates = duCloud;
       Object.keys(duCloud).forEach(function(id) {
+        if (id === "_ts" || id === "_arr") return;
         var c = window.cases.find(function(x) { return x.id === id; });
-        if (c && duCloud[id]) { c.nd = duCloud[id]; }
+        if (c && duCloud[id] !== undefined) { c.nd = duCloud[id] || ""; }
       });
       window.caseNotes = JSON.parse(localStorage.getItem("u4notes") || "{}");
       if (typeof renderDB === "function") renderDB();
@@ -1446,8 +1447,9 @@ setInterval(chkN,30*60000);
         try {
           var __du = JSON.parse(localStorage.getItem("u4du") || "{}");
           Object.keys(__du).forEach(function(id) {
+            if (id === "_ts" || id === "_arr") return;
             var c = window.cases.find(function(x) { return x.id === id; });
-            if (c && __du[id]) c.nd = __du[id];
+            if (c && __du[id] !== undefined) c.nd = __du[id] || "";
           });
         } catch(e){}
       }
@@ -1507,8 +1509,9 @@ setInterval(chkN,30*60000);
       window.dateUpdates = merged;
       if (typeof window.cases !== "undefined") {
         Object.keys(merged).forEach(function(id) {
+          if (id === "_ts" || id === "_arr") return;
           var c = window.cases.find(function(x) { return x.id === id; });
-          if (c && merged[id]) c.nd = merged[id];
+          if (c && merged[id] !== undefined) c.nd = merged[id] || "";
         });
       }
       if (typeof renderDB === "function") renderDB();
