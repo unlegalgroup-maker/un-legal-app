@@ -1052,7 +1052,7 @@ h+='<td style="padding:8px 10px;color:var(--tx2);font-size:11px;max-width:200px"
 h+='<td style="padding:8px 10px;font-family:monospace;color:#1565c0;white-space:nowrap">'+FX(c.nr)+'</td>';
 h+='<td style="padding:8px 10px;white-space:nowrap">'+FD(c.dln)+'</td>';
 h+='<td style="padding:8px 10px;white-space:nowrap;color:var(--tx2)">'+FD(c.spd||'')+'</td>';
-h+='<td style="padding:8px 10px;white-space:nowrap;font-size:11px;color:var(--tx2)">'+formatNCRecipients(c)+'</td>';
+h+='<td style="padding:8px 10px;white-space:nowrap;font-size:11px;color:var(--tx2)">'+formatNCRecipients(c)+'<br><button onclick="event.stopPropagation();editNCRecipients(\''+c.sn+'\')" style="margin-top:4px;padding:2px 6px;font-size:10px;background:#1a2744;color:#fff;border:none;border-radius:3px;cursor:pointer">Edit Recipients</button></td>';
 h+='<td style="padding:8px 10px;white-space:nowrap;color:var(--tx2)">'+FD(c.wad||'')+'</td>';
 h+='<td style="padding:8px 10px;white-space:nowrap;color:var(--tx2)">'+FD(c.emd||'')+'</td>';
 h+='<td style="padding:8px 10px;white-space:nowrap;'+overdue+'">'+FD(c.nd)+'</td>';
@@ -2181,7 +2181,7 @@ document.addEventListener('DOMContentLoaded',function(){
   }
 })();
 </script>
-<!-- END: Compliance Sub-Status Stage 1 -->
+<!-- END: Compliance Sub-Status Stage 1 --><script src="edit-nc.js?v=1"></script>
 
 </body>
 </html>
