@@ -1014,7 +1014,7 @@ listEl.innerHTML=matches.map(function(m,i){return'<div onmousedown="var el=docum
 listEl.style.display="block";
 }
 
-function renderNotices(){
+function formatNCRecipients(c){try{var rs=c&&c.recipients;if(rs&&rs.length){var lines=rs.map(function(r){var t=(r.trk||'').trim();var s=(r.st||'').trim();var trkHtml=t?'<span style="font-family:monospace">'+(window.FX?FX(t):t)+'</span>':'<span style="color:var(--tx2)">no trk</span>';var stHtml=s?' <span style="font-size:10px;color:var(--tx2)">['+(window.FX?FX(s):s)+']</span>':'';return trkHtml+stHtml;});return lines.join('<br>');}var leg=(c&&c.trk)||'';return leg?(window.FX?FX(leg):leg):'\u2014';}catch(e){return '\u2014';}}function renderNotices(){
 var notices=(window.cases||[]).filter(function(c){return(c.ct||"").toUpperCase()==="NOTICE";});
 notices=notices.map(function(c){var e=window.caseEdits&&window.caseEdits[c.id]?window.caseEdits[c.id]:{};return Object.assign({},c,e);});
 var badge=$("ntc-cnt");if(badge)badge.textContent=notices.length;
@@ -1052,7 +1052,7 @@ h+='<td style="padding:8px 10px;color:var(--tx2);font-size:11px;max-width:200px"
 h+='<td style="padding:8px 10px;font-family:monospace;color:#1565c0;white-space:nowrap">'+FX(c.nr)+'</td>';
 h+='<td style="padding:8px 10px;white-space:nowrap">'+FD(c.dln)+'</td>';
 h+='<td style="padding:8px 10px;white-space:nowrap;color:var(--tx2)">'+FD(c.spd||'')+'</td>';
-h+='<td style="padding:8px 10px;white-space:nowrap;font-size:11px;color:var(--tx2)">'+FX(c.trk||'—')+'</td>';
+h+='<td style="padding:8px 10px;white-space:nowrap;font-size:11px;color:var(--tx2)">'+formatNCRecipients(c)+'</td>';
 h+='<td style="padding:8px 10px;white-space:nowrap;color:var(--tx2)">'+FD(c.wad||'')+'</td>';
 h+='<td style="padding:8px 10px;white-space:nowrap;color:var(--tx2)">'+FD(c.emd||'')+'</td>';
 h+='<td style="padding:8px 10px;white-space:nowrap;'+overdue+'">'+FD(c.nd)+'</td>';
