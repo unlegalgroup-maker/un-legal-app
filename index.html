@@ -2026,12 +2026,12 @@ document.addEventListener('DOMContentLoaded',function(){
   // ---- Sidebar navigation entry ------------------------------
   function ensureSidebarLink(){
     if (document.getElementById('ni-cmpl')) return;
-    // Find the existing nav by looking for the Daily Tasks link
+    // Find the existing nav by looking for the Cause List link
     var nav = document.querySelector('.sb');
     if (!nav) return;
     var anchorLink = null;
     nav.querySelectorAll('a.ni').forEach(function(a){
-      if ((a.textContent || '').toLowerCase().indexOf('daily tasks') !== -1) anchorLink = a;
+      if ((a.textContent || '').toLowerCase().indexOf('cause list') !== -1) anchorLink = a;
     });
     if (!anchorLink) anchorLink = nav.querySelector('a.ni');
     if (!anchorLink) return;
