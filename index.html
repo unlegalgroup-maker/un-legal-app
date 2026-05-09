@@ -131,7 +131,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 <a class="ni" onclick="go('cl')">&#9878;&#65039; Cause List</a>
 <a class="ni" onclick="go('nodt')">&#9888;&#65039; No-Date Cases <span class="c" id="nd-badge">0</span></a>
-<a class="ni" onclick="go('task')">&#9989; Daily Tasks</a>
+
 <a class="ni" onclick="go('ord')">&#128220; Orders &amp; Files</a>
 <a class="ni" onclick="go('comm')">&#128172; Communications</a>
 <a class="ni" onclick="go('crem')">&#128241; Client Reminders</a>
@@ -163,7 +163,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 <div id="pg-cl" class="pg"></div>
 <div id="pg-nodt" class="pg"></div>
-<div id="pg-task" class="pg"></div>
+
 <div id="pg-ord" class="pg"></div>
 <div id="pg-comm" class="pg"></div>
 <div id="pg-crem" class="pg"></div>
@@ -297,7 +297,7 @@ document.querySelectorAll(".pg").forEach(function(x){x.classList.remove("a")});
 $("pg-"+p).classList.add("a");
 document.querySelectorAll(".ni").forEach(function(x){x.classList.remove("a")});
 if(event&&event.target)event.target.classList.add("a");
-var T={dash:"Dashboard",cases:"All Cases ("+cases.filter(function(c){return (c.ct||"").toUpperCase()!=="NOTICE"}).length+")",cl:"Cause List",nodt:"No-Date Cases",task:"Daily Tasks",cmpl:"Compliance Sheet",ord:"Orders & Files",comm:"Communications",crem:"Client Reminders",newc:"Add New Case / Fresh Matter",bulk:"Bulk Update",ntc:"Notices",share:"Share & Download"};
+var T={dash:"Dashboard",cases:"All Cases ("+cases.filter(function(c){return (c.ct||"").toUpperCase()!=="NOTICE"}).length+")",cl:"Cause List",nodt:"No-Date Cases",cmpl:"Compliance Sheet",ord:"Orders & Files",comm:"Communications",crem:"Client Reminders",newc:"Add New Case / Fresh Matter",bulk:"Bulk Update",ntc:"Notices",share:"Share & Download"};
 $("pt").textContent=T[p]||p;
 if(p==="cl")buildCLD();if(p==="nodt")renderND();if(p==="ord")renderO();if(p==="comm")renderCM();if(p==="crem")renderCR();if(p==="newc")renderNC();if(p==="bulk")renderBulk();if(p==="ntc")renderNotices();if(p==="share")renderShare();
 }
@@ -730,21 +730,6 @@ if(typeof renderDB==="function")renderDB();
 }
 
 // ===== TASKS =====
-function renderT(){
-var h='<div class="tl"><input id="tinp" class="si" style="flex:1" placeholder="New task..." onkeydown="if(event.key===\'Enter\')addT()"><select id="tpri" class="si" style="width:110px"><option>Normal</option><option>High</option><option>Urgent</option></select><button class="btn bp" onclick="addT()">Add Task</button></div>';if(typeof fbSave==="function")fbSave("u4ce");
-h+='<div class="ft"><button class="fb'+(tf==="all"?" a":"")+'" onclick="tf=\'all\';renderT()">All</button><button class="fb'+(tf==="p"?" a":"")+'" onclick="tf=\'p\';renderT()">Pending</button><button class="fb'+(tf==="d"?" a":"")+'" onclick="tf=\'d\';renderT()">Done</button></div>';
-var fl=tasks;if(tf==="p")fl=tasks.filter(function(t){return t.s!=="d"});if(tf==="d")fl=tasks.filter(function(t){return t.s==="d"});
-fl.forEach(function(t){var ri=tasks.indexOf(t);
-h+='<div style="display:flex;align-items:center;justify-content:space-between;background:var(--wh);padding:10px 14px;border-radius:8px;margin-bottom:4px;box-shadow:var(--sh)'+(t.s==="d"?';opacity:.5;text-decoration:line-through':'')+'">';
-h+='<div><b style="font-size:11px">'+t.t+'</b><br><span style="font-size:9px;color:var(--tx2)">'+t.p+' | '+FD(t.d)+'</span></div>';
-h+='<div style="display:flex;gap:4px"><button class="btn bsm" style="background:var(--gn);color:#fff" onclick="cmpT('+ri+')">'+(t.s==="d"?"Undo":"Done")+'</button><button class="btn bsm brd" onclick="delT('+ri+')">Del</button></div></div>'});
-if(!fl.length)h+='<div style="text-align:center;padding:20px;color:var(--tx2);font-size:11px">No tasks yet. Add one above.</div>';
-$("pg-task").innerHTML=h;
-}
-function addT(){var inp=$("tinp");var pri=$("tpri");if(!inp||!inp.value.trim())return;tasks.push({t:inp.value.trim(),p:pri.value,s:"p",d:new Date().toISOString()});inp.value="";localStorage.setItem("u4t",JSON.stringify(tasks));if(typeof fbSave==="function")fbSave("u4t");renderT()}
-function cmpT(i){tasks[i].s=tasks[i].s==="d"?"p":"d";localStorage.setItem("u4t",JSON.stringify(tasks));if(typeof fbSave==="function")fbSave("u4t");renderT()}
-function delT(i){tasks.splice(i,1);localStorage.setItem("u4t",JSON.stringify(tasks));if(typeof fbSave==="function")fbSave("u4t");renderT()}
-
 // ===== ORDERS =====
 function renderO(){
 var h='<div class="fb2"><h3>&#128220; Add Order / Upload File</h3>';
@@ -1135,7 +1120,7 @@ document.addEventListener("DOMContentLoaded",function(){document.addEventListene
 
 $("dd").textContent=new Date().toLocaleDateString("en-IN",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
 if("Notification" in window&&Notification.permission==="default")Notification.requestPermission();
-renderDB();renderC();renderT();chkN();
+renderDB();renderC();if(typeof renderT==='function')renderT();chkN();
 setInterval(chkN,30*60000);
 });
 
