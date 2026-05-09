@@ -1035,20 +1035,20 @@ h+='</div>';
 if(notices.length===0){h+='<div style="text-align:center;padding:40px;color:var(--tx2)">No notices found. Use Add New Case and set Case Type = NOTICE.</div></div>';$("pg-ntc").innerHTML=h;return;}
 h+='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">';
 h+='<thead><tr style="background:var(--nv);color:#fff;text-align:left">';
-['#','Party Name','Opposite Party','Opp Address / Phone','Ref No','Notice Sent','Speed Post','Tracking No','WhatsApp','Email','Reply By / Next Date','Amount','Status','AR'].forEach(function(col){h+='<th style="padding:8px 10px;white-space:nowrap">'+col+'</th>';});
+['#','Party Name','Opposite Party','Ref No','Notice Sent','Speed Post','Tracking No','WhatsApp','Email','Reply By / Next Date','Amount','Status','AR'].forEach(function(col){h+='<th style="padding:8px 10px;white-space:nowrap">'+col+'</th>';});
 h+='</tr></thead><tbody>';
 var FX=function(v){return v||'—';};
 var FD=function(v){if(!v||v==='—')return'—';try{var d=new Date(v);return isNaN(d)?v:d.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});}catch(e){return v;}};
 var SC=function(s){var m={'sent':'#2196f3','reply received':'#4caf50','no reply':'#f44336','expired':'#f44336','filed in court':'#9c27b0','settled':'#4caf50','resolved':'#4caf50','fresh matter':'#888'};var k=(s||'').toLowerCase();for(var key in m)if(k.indexOf(key)>=0)return m[key];return'#888';};
 notices.forEach(function(c,i){
 var bg=i%2===0?'background:var(--bg)':'background:rgba(0,0,0,0.025)';
-var addr=[c.opa,c.nop].filter(Boolean).join(' | ');
+
 var overdue=c.nd&&new Date(c.nd)<new Date()?'color:#e53935':'';
 h+='<tr style="'+bg+';border-bottom:1px solid var(--bd);cursor:pointer" onclick="opM(\''+c.sn+'\')">';
 h+='<td style="padding:8px 10px;color:var(--tx2);white-space:nowrap">'+c.sn+'.</td>';
 h+='<td style="padding:8px 10px;font-weight:600;color:var(--nv)">'+FX(c.pn)+'</td>';
 h+='<td style="padding:8px 10px">'+FX(c.op)+'</td>';
-h+='<td style="padding:8px 10px;color:var(--tx2);font-size:11px;max-width:200px">'+FX(addr)+'</td>';
+
 h+='<td style="padding:8px 10px;font-family:monospace;color:#1565c0;white-space:nowrap">'+FX(c.nr)+'</td>';
 h+='<td style="padding:8px 10px;white-space:nowrap">'+FD(c.dln)+'</td>';
 h+='<td style="padding:8px 10px;white-space:nowrap;color:var(--tx2)">'+FD(c.spd||'')+'</td>';
