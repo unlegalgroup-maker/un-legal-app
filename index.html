@@ -916,7 +916,7 @@ h+='</div>';
 if(notices.length===0){h+='<div style="text-align:center;padding:40px;color:var(--tx2)">No notices found. Use Add New Case and set Case Type = NOTICE.</div></div>';$("pg-ntc").innerHTML=h;return;}
 h+='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">';
 h+='<thead><tr style="background:var(--nv);color:#fff;text-align:left">';
-['#','Party Name','Opposite Party','Ref No','Notice Sent','Speed Post','Tracking No','WhatsApp','Email','Reply By / Next Date','Amount','Status','AR'].forEach(function(col){h+='<th style="padding:8px 10px;white-space:nowrap">'+col+'</th>';});
+['#','Party Name','Opposite Party','Ref No','Notice Sent','Speed Post','Tracking No','Reply By / Next Date'].forEach(function(col){h+='<th style="padding:8px 10px;white-space:nowrap">'+col+'</th>';});
 h+='</tr></thead><tbody>';
 var FX=function(v){return v||'—';};
 var FD=function(v){if(!v||v==='—')return'—';try{var d=new Date(v);return isNaN(d)?v:d.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});}catch(e){return v;}};
@@ -934,12 +934,7 @@ h+='<td style="padding:8px 10px;font-family:monospace;color:#1565c0;white-space:
 h+='<td style="padding:8px 10px;white-space:nowrap">'+FD(c.dln)+'</td>';
 h+='<td style="padding:8px 10px;white-space:nowrap;color:var(--tx2)">'+FD(c.spd||'')+'</td>';
 h+='<td style="padding:8px 10px;white-space:nowrap;font-size:11px;color:var(--tx2)">'+formatNCRecipients(c)+'<br><button onclick="event.stopPropagation();editNCRecipients(\''+c.sn+'\')" style="margin-top:4px;padding:2px 6px;font-size:10px;background:#1a2744;color:#fff;border:none;border-radius:3px;cursor:pointer">Edit Recipients</button></td>';
-h+='<td style="padding:8px 10px;white-space:nowrap;color:var(--tx2)">'+FD(c.wad||'')+'</td>';
-h+='<td style="padding:8px 10px;white-space:nowrap;color:var(--tx2)">'+FD(c.emd||'')+'</td>';
 h+='<td style="padding:8px 10px;white-space:nowrap;'+overdue+'">'+FD(c.nd)+'</td>';
-h+='<td style="padding:8px 10px;text-align:right;white-space:nowrap">'+(c.ta?'₹'+Number(c.ta).toLocaleString('en-IN'):'—')+'</td>';
-h+='<td style="padding:8px 10px"><span style="background:'+SC(c.st)+';color:#fff;padding:3px 8px;border-radius:12px;font-size:10px;white-space:nowrap">'+FX(c.st)+'</span></td>';
-h+='<td style="padding:8px 10px;color:var(--tx2)">'+FX(c.ar)+'</td>';
 h+='</tr>';
 });
 h+='</tbody></table></div></div>';
@@ -1785,6 +1780,25 @@ document.addEventListener('DOMContentLoaded',function(){
     logChange(c, def.key, prev, val);
     safeRerender();
   }
+  function setComplianceType(sn, val, selEl){
+    var allowed = ['PF', 'Drafting Needed', 'No Compliance'];
+    if (allowed.indexOf(val) === -1) return;
+    var c = getCase(sn);
+    if (!c) return;
+    var prev = c[CLS_KEY] || '';
+    if (prev === val) return;
+    if (val === 'No Compliance') {
+      var label = (c.pn || c.op || ('Case #' + c.sn));
+      var ok = window.confirm('Remove "' + label + '" from Compliance Sheet?\n\nIts compliance type will be set to "No Compliance" and the row will disappear from this sheet. The case itself is not deleted and you can re-classify it later.');
+      if (!ok) {
+        if (selEl) { try { selEl.value = selEl._prevValue || prev; } catch(_){} }
+        return;
+      }
+    }
+    persist(c, CLS_KEY, val);
+    try { logChange(c, CLS_KEY, prev, val); } catch(_){}
+    safeRerender();
+  }
 
   function ensureDefaultSubStatus(c){
     if (!c) return false;
@@ -2002,7 +2016,7 @@ document.addEventListener('DOMContentLoaded',function(){
       }).join('');
       html += '<tr style="border-top:1px solid #e2e5e9;">'
         +   '<td style="padding:10px 12px;font-weight:600;color:#1a2744;">' + (c.sn || '') + '. ' + escapeHtml(c.pn || c.op || '(untitled)') + '</td>'
-        +   '<td style="padding:10px 12px;">' + c[CLS_KEY] + '</td>'
+        +   '<td style="padding:10px 12px;">' + (function(){ var v = c[CLS_KEY] || ''; var opts = ['PF','Drafting Needed','No Compliance']; return '<select data-sn="' + c.sn + '" class="cmpl-type-sel" style="padding:4px 6px;border-radius:4px;border:1px solid #cbd5e0;font-size:12px;">' + opts.map(function(o){ return '<option value="' + o + '"' + (o === v ? ' selected' : '') + '>' + o + '</option>'; }).join('') + '</select>'; })() + '</td>'
         +   '<td style="padding:10px 12px;"><span style="background:' + color + ';color:#fff;padding:3px 9px;border-radius:10px;font-size:11px;font-weight:700;">' + cur + '</span></td>'
         +   '<td style="padding:10px 12px;color:#718096;">' + when + '</td>'
         +   '<td style="padding:10px 12px;"><select data-sn="' + c.sn + '" class="cmpl-row-sel" style="padding:4px 6px;border-radius:4px;border:1px solid #cbd5e0;font-size:12px;">' + optsHtml + '</select></td>'
@@ -2013,6 +2027,12 @@ document.addEventListener('DOMContentLoaded',function(){
     wrap.querySelectorAll('.cmpl-row-sel').forEach(function(sel){
       sel.onchange = function(){
         setSubStatus(this.getAttribute('data-sn'), this.value);
+      };
+    });
+    wrap.querySelectorAll('.cmpl-type-sel').forEach(function(sel){
+      sel._prevValue = sel.value;
+      sel.onchange = function(){
+        setComplianceType(this.getAttribute('data-sn'), this.value, this);
       };
     });
   }
