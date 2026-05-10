@@ -2062,7 +2062,7 @@ document.addEventListener('DOMContentLoaded',function(){
   }
 })();
 </script>
-<!-- END: Compliance Sub-Status Stage 1 --><script src="edit-nc.js?v=1"></script>
+<!-- END: Compliance Sub-Status Stage 1 --><script src="edit-nc.js?v=1"></script><script>(function(){if(!('serviceWorker' in navigator))return;window.addEventListener('load',function(){navigator.serviceWorker.register('./service-worker.js').then(function(reg){reg.addEventListener('updatefound',function(){var nw=reg.installing;if(!nw)return;nw.addEventListener('statechange',function(){if(nw.state==='installed'&&navigator.serviceWorker.controller){showSWUpdateBanner(reg);}});});}).catch(function(e){console.warn('SW registration failed:',e);});});function showSWUpdateBanner(reg){if(document.getElementById('swUpdBanner'))return;var b=document.createElement('div');b.id='swUpdBanner';b.style.cssText='position:fixed;top:0;left:0;right:0;background:#0a7e23;color:#fff;padding:10px;text-align:center;z-index:99999;cursor:pointer;font-weight:600;font-size:13px';b.innerHTML='\ud83d\udd04 New version available \u2014 tap to refresh';b.onclick=function(){if(reg.waiting)reg.waiting.postMessage('SKIP_WAITING');setTimeout(function(){location.reload();},300);};document.body.appendChild(b);}window.showSWUpdateBanner=showSWUpdateBanner;window.__unregisterSW=function(){if(!navigator.serviceWorker)return;navigator.serviceWorker.getRegistrations().then(function(rs){rs.forEach(function(r){r.unregister();});if(window.caches)caches.keys().then(function(keys){keys.forEach(function(k){caches.delete(k);});});console.log('SW unregistered. Reload to clear cache.');});};})();</script>
 
 </body>
 </html>
