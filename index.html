@@ -768,7 +768,7 @@ var el=$("ols");if(el)el.innerHTML=h;
 function setCommTarget(t){commTarget=t;document.querySelectorAll(".pty-btn").forEach(function(x){x.classList.remove("a")});$("pty_"+t).classList.add("a");updCI()}
 function renderCM(){
 var h='<div class="fb2"><h3>&#128172; Send Communication</h3>';
-h+='<div class="fg"><label>Select Case</label><select id="ccas" onchange="updCI()">'+caseOpts()+'</select></div>';
+h+='<div class="fg"><label>Select Case</label><div style="position:relative;margin-bottom:6px;"><input type="text" id="ccas-search" placeholder="🔎 Type case name, sn, or CNR to filter…" autocomplete="off" oninput="ccasFilter(this.value)" style="width:100%;padding:8px 30px 8px 10px;border:1px solid #cbd5e0;border-radius:6px;font-size:13px;box-sizing:border-box;"><span id="ccas-search-clear" title="Clear" onclick="ccasFilterClear()" style="position:absolute;right:8px;top:8px;cursor:pointer;color:#718096;font-size:14px;display:none;user-select:none;">✕</span><div id="ccas-search-meta" style="font-size:11px;color:#718096;margin-top:2px;min-height:14px;"></div></div><select id="ccas" onchange="updCI()">'+caseOpts()+'</select></div>';
 h+='<div style="margin:10px 0"><label style="font-size:10px;font-weight:600;color:var(--nv);display:block;margin-bottom:6px">Send To</label>';
 h+='<div class="pty-sel">';
 h+='<div class="pty-btn'+(commTarget==="client"?" a":"")+'" id="pty_client" onclick="setCommTarget(\'client\')">&#128100; Our Client<br><span style="font-size:9px;font-weight:400;opacity:.7">Owner / AR</span></div>';
@@ -781,9 +781,9 @@ h+='<button class="btn bp" style="background:#4285f4" onclick="doEM()">&#128231;
 h+='<button class="btn bp" style="background:var(--or)" onclick="doSM()">&#128241; SMS</button>';
 h+='<button class="btn bp" style="background:var(--gn)" onclick="doCL()">&#128222; Call</button></div>';
 h+='<div class="fg"><label>Message</label><textarea id="cmsg" placeholder="Type your message here..."></textarea></div></div>';
-h+='<div id="clg"></div>';$("pg-comm").innerHTML=h;renderCLG();
+h+='<div id="clg"></div>';$("pg-comm").innerHTML=h;renderCLG();initCcasSearch();
 }
-function updCI(){var sn=parseInt($("ccas").value);var c=cases.find(function(x){return x.sn===sn});
+function initCcasSearch(){var sel=document.getElementById("ccas"),inp=document.getElementById("ccas-search");if(!sel||!inp)return;sel.__allOpts=Array.from(sel.options).slice(1).map(function(o){return{value:o.value,text:o.text,low:o.text.toLowerCase()};});sel.__ph=sel.options[0];sel.__crnBy={};if(Array.isArray(window.cases)){window.cases.forEach(function(c){if(c&&c.sn!=null&&c.crn)sel.__crnBy[String(c.sn)]=String(c.crn).toLowerCase();});}ccasFilter("");}function ccasFilter(q){var sel=document.getElementById("ccas");if(!sel||!sel.__allOpts)return;q=(q||"").trim().toLowerCase();var cur=sel.value,n=0,kept=false;sel.innerHTML="";sel.appendChild(sel.__ph);sel.__allOpts.forEach(function(o){var c=sel.__crnBy[o.value]||"";if(!q||o.low.indexOf(q)>=0||c.indexOf(q)>=0){var op=document.createElement("option");op.value=o.value;op.text=o.text;sel.appendChild(op);if(o.value===cur)kept=true;n++;}});var meta=document.getElementById("ccas-search-meta"),clr=document.getElementById("ccas-search-clear");if(meta)meta.textContent=q?(n+" match"+(n===1?"":"es")):(sel.__allOpts.length+" cases");if(clr)clr.style.display=q?"inline":"none";if(cur&&kept){sel.value=cur;}else if(cur){sel.value="";sel.dispatchEvent(new Event("change",{bubbles:true}));}}function ccasFilterClear(){var inp=document.getElementById("ccas-search");if(inp){inp.value="";ccasFilter("");inp.focus();}}function updCI(){var sn=parseInt($("ccas").value);var c=cases.find(function(x){return x.sn===sn});
 if(!c){$("cinfo").innerHTML='<span style="color:var(--tx2)">Select a case to see contact details</span>';return}
 var cp=getCommPhones();
 var h='<b style="color:var(--nv);font-size:12px">'+F(c.pn)+' vs '+F(c.op)+'</b><br>';
