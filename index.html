@@ -254,7 +254,7 @@ try {
       var v = JSON.parse(raw);
       if (Array.isArray(v)) return;
       if (v && typeof v === "object") {
-        var ks = Object.keys(v).filter(function(x){return !isNaN(parseInt(x));}).sort(function(a,b){return parseInt(a)-parseInt(b);});
+        var ks = Object.keys(v).sort();
         var arr = ks.map(function(x){return v[x];});
         localStorage.setItem(k, JSON.stringify(arr));
       }
@@ -1180,7 +1180,7 @@ setInterval(chkN,30*60000);
       const payload = Array.isArray(data) ? { _arr: data } : data;
       var _sb=document.getElementById("fb-sync-bar");
       if(_sb){_sb.style.display="block";_sb.style.background="linear-gradient(90deg,#1a2744,#2c3e50)";_sb.innerHTML="&#9679; Saving&hellip;";}
-      setDoc(DOCS[key], payload, { merge: false }).then(function(){
+      setDoc(DOCS[key], payload, { merge: true }).then(function(){
         var _sb2=document.getElementById("fb-sync-bar");
         if(_sb2){_sb2.style.background="linear-gradient(90deg,#1b5e20,#2e7d32)";_sb2.innerHTML="&#10003; Saved";setTimeout(function(){_sb2.style.display="none";},1200);}
       }).catch(function(e) {
