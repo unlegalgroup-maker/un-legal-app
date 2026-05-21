@@ -189,7 +189,7 @@ var comlog=JSON.parse(localStorage.getItem("u4c")||"[]");
 var clientNums=JSON.parse(localStorage.getItem("u4cn")||"{}");
 var dateUpdates=JSON.parse(localStorage.getItem("u4du")||"{}");
 /* [FIX-ARRAY] Defensive: localStorage may have an object-with-numeric-keys due to a Firestore round-trip quirk. Convert back to array. */
-function __toArrSafe(raw){ try { var v = JSON.parse(raw||"[]"); if(Array.isArray(v)) return v; if(v && typeof v === "object"){ var ks = Object.keys(v).filter(function(k){return !isNaN(parseInt(k));}).sort(function(a,b){return parseInt(a)-parseInt(b);}); return ks.map(function(k){return v[k];}); } return []; } catch(_){ return []; } }
+function __toArrSafe(raw){ try { var v = JSON.parse(raw||"[]"); if(Array.isArray(v)) return v; if(v && typeof v === "object"){ if(Array.isArray(v._arr)) return v._arr; var ks = Object.keys(v).filter(function(k){return k!=='_ts'&&k!=='_arr';}); var allNumeric = ks.length>0 && ks.every(function(k){return /^\d+$/.test(k);}); if(allNumeric) ks.sort(function(a,b){return (+a)-(+b);}); return ks.map(function(k){return v[k];}); } return []; } catch(_){ return []; } }
 
 /* ===== [STATUS-DROPDOWN] Standardized case status options (single source of truth) ===== */
 var STATUS_OPTIONS = ["Fresh Case", "Summons Issued", "Evidence", "Misc. Arguments", "Final Arguments", "Warrants", "Orders/Judgment", "Withdrawn/Disposed Off", "Decreed"];
@@ -911,7 +911,7 @@ h+='<input type="text" id="ntc-srch" placeholder="&#128269; Search party, ref no
 h+='<select id="ntc-sf" onchange="renderNotices()" style="padding:8px 12px;border-radius:8px;border:1px solid var(--bd);font-size:13px;cursor:pointer">';
 ["All Status","Sent","Reply Received","No Reply / Expired","Filed in Court","Settled / Resolved","Fresh Matter"].forEach(function(s){h+='<option'+(sf===s?" selected":"")+'>'+s+'</option>';});
 h+='</select>';
-h+='<button class="btn bp" onclick="go(&apos;newc&apos;)" style="white-space:nowrap">&#43; Add Notice</button>';
+h+='<button class="btn bp" onclick="window._ncDefaultCt=&apos;NOTICE&apos;;go(&apos;newc&apos;)" style="white-space:nowrap">&#43; Add Notice</button>';
 h+='</div>';
 if(notices.length===0){h+='<div style="text-align:center;padding:40px;color:var(--tx2)">No notices found. Use Add New Case and set Case Type = NOTICE.</div></div>';$("pg-ntc").innerHTML=h;return;}
 h+='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">';
@@ -1003,7 +1003,7 @@ if(newCases.length){h+='<div class="ab"><h3>Recently Added <span class="cn">'+ne
 h+='<table class="clt"><tr><th>#</th><th>Party</th><th>Vs</th><th>Type</th><th>Status</th><th>Next Date</th><th>Action</th></tr>';
 newCases.forEach(function(nc,i){h+='<tr><td>'+(i+1)+'</td><td>'+F(nc.pn)+'</td><td>'+F(nc.op)+'</td><td>'+F(nc.ct)+'</td><td>'+F(nc.st)+'</td><td>'+FD(nc.nd)+'</td><td><button class="btn bsm brd" onclick="delNC('+i+')">Remove</button></td></tr>'});
 h+='</table></div>'}
-$("pg-newc").innerHTML=h;try{toggleNCRecipientsUI();var _nct=document.getElementById('nc_ct');if(_nct){_nct.addEventListener('change',toggleNCRecipientsUI);}var _nab=document.getElementById('ncAddRecipientBtn');if(_nab){_nab.onclick=function(){addNCRecipientRow();};}}catch(e){}
+$("pg-newc").innerHTML=h;try{var _nct=document.getElementById('nc_ct');if(_nct){_nct.addEventListener('change',toggleNCRecipientsUI);if(window._ncDefaultCt){_nct.value=window._ncDefaultCt;window._ncDefaultCt=null;}}toggleNCRecipientsUI();var _nab=document.getElementById('ncAddRecipientBtn');if(_nab){_nab.onclick=function(){addNCRecipientRow();};}}catch(e){}
 }
 function saveNC(){
 var pn=$("nc_pn").value.trim();var op=$("nc_op").value.trim();
@@ -1180,10 +1180,14 @@ setInterval(chkN,30*60000);
       const payload = Array.isArray(data) ? { _arr: data } : data;
       var _sb=document.getElementById("fb-sync-bar");
       if(_sb){_sb.style.display="block";_sb.style.background="linear-gradient(90deg,#1a2744,#2c3e50)";_sb.innerHTML="&#9679; Saving&hellip;";}
+      /* [FIX-RACE] mark write in flight so the live snapshot listener won't clobber our local copy mid-save */
+      window._fbPending = (window._fbPending || 0) + 1;
       setDoc(DOCS[key], payload, { merge: true }).then(function(){
+        window._fbPending = Math.max(0, (window._fbPending || 1) - 1);
         var _sb2=document.getElementById("fb-sync-bar");
         if(_sb2){_sb2.style.background="linear-gradient(90deg,#1b5e20,#2e7d32)";_sb2.innerHTML="&#10003; Saved";setTimeout(function(){_sb2.style.display="none";},1200);}
       }).catch(function(e) {
+        window._fbPending = Math.max(0, (window._fbPending || 1) - 1);
         var _sb2=document.getElementById("fb-sync-bar");
         if(_sb2){_sb2.style.background="#b71c1c";_sb2.innerHTML="&#9888; Save failed";setTimeout(function(){_sb2.style.display="none";},2500);}
         console.warn("fbSave failed for " + key, e.message);
@@ -1244,9 +1248,12 @@ setInterval(chkN,30*60000);
     }
     if (anyUpdate && typeof window.cases !== "undefined") {
       const ncArr = (typeof window.__toArrSafe === "function" ? window.__toArrSafe(localStorage.getItem("u4nc")) : (function(){ try { var v = JSON.parse(localStorage.getItem("u4nc") || "[]"); if (Array.isArray(v)) return v; if (v && typeof v === "object") { var ks = Object.keys(v).filter(function(k){return !isNaN(parseInt(k));}).sort(function(a,b){return parseInt(a)-parseInt(b);}); return ks.map(function(k){return v[k];}); } return []; } catch(_){ return []; } })());
-      window.cases = window.cases.filter(function(c) { return !String(c.id).startsWith("NC"); });
+      /* [FIX-MERGE] preserve local-only NC entries that haven't synced to cloud yet (race-safe) */
+      var __cloudIds = new Set(ncArr.map(function(nc){return nc.id;}));
+      window.cases = window.cases.filter(function(c) { return !String(c.id).startsWith("NC") || !__cloudIds.has(c.id); });
       ncArr.forEach(function(nc) {
-        if (!window.cases.find(function(c) { return c.id === nc.id; })) window.cases.push(nc);
+        var existing = window.cases.find(function(c) { return c.id === nc.id; });
+        if (!existing) window.cases.push(nc);
       });
       const ceCloud = JSON.parse(localStorage.getItem("u4ce") || "{}");
       window.caseEdits = ceCloud;
@@ -1284,10 +1291,11 @@ setInterval(chkN,30*60000);
       // Merge into window.cases so all users see new cases immediately
       if (typeof window.cases !== "undefined" && typeof window.D !== "undefined") {
         const ncIds = new Set(arr.map(function(x) { return x.id; }));
-        // Remove old nc entries, keep base D.cases
-        window.cases = window.cases.filter(function(c) { return !String(c.id).startsWith("NC"); });
-        // Add all new cases from cloud
-        arr.forEach(function(nc) { if (!window.cases.find(function(c) { return c.id === nc.id; })) window.cases.push(nc); });
+        /* [FIX-MERGE] Skip the wipe if a local save is in flight, and never wipe NC entries the cloud doesn't have yet */
+        if (!window._fbPending || window._fbPending <= 0) {
+          window.cases = window.cases.filter(function(c) { return !String(c.id).startsWith("NC") || !ncIds.has(c.id); });
+          arr.forEach(function(nc) { if (!window.cases.find(function(c) { return c.id === nc.id; })) window.cases.push(nc); });
+        }
         if (typeof renderDB === "function") renderDB();
         if (typeof renderC === "function") renderC();
       }
@@ -1505,13 +1513,14 @@ document.addEventListener('DOMContentLoaded',function(){
   // colored badge for the current classification.
   // ============================================================
 
-  var CLS_OPTIONS = ['PF', 'Drafting Needed', 'No Compliance'];
+  var CLS_OPTIONS = ['PF', 'Drafting Needed', 'Other compliance', 'No Compliance'];
   var CLS_KEY = 'cls';
   var CLS_LABEL = 'Classification';
 
   function colorFor(v){
     if (v === 'PF') return '#1976d2';
     if (v === 'Drafting Needed') return '#d4af37';
+    if (v === 'Other compliance') return '#805ad5';
     if (v === 'No Compliance') return '#666';
     return '#888';
   }
@@ -1733,6 +1742,17 @@ document.addEventListener('DOMContentLoaded',function(){
         'To be Drafted': '#dd6b20',
         'Done':          '#38a169'
       }
+    },
+    'Other compliance': {
+      key: 'othst',
+      label: 'Other Status',
+      options: ['For TC', 'For NSR', 'For Fresh Address', 'Done'],
+      colors: {
+        'For TC':            '#805ad5',
+        'For NSR':           '#d69e2e',
+        'For Fresh Address': '#3182ce',
+        'Done':              '#38a169'
+      }
     }
   };
   var CLS_KEY = 'cls';
@@ -1781,7 +1801,7 @@ document.addEventListener('DOMContentLoaded',function(){
     safeRerender();
   }
   function setComplianceType(sn, val, selEl){
-    var allowed = ['PF', 'Drafting Needed', 'No Compliance'];
+    var allowed = ['PF', 'Drafting Needed', 'Other compliance', 'No Compliance'];
     if (allowed.indexOf(val) === -1) return;
     var c = getCase(sn);
     if (!c) return;
@@ -1932,12 +1952,37 @@ document.addEventListener('DOMContentLoaded',function(){
       +       '<option value="">All Compliance Types</option>'
       +       '<option value="PF">PF Only</option>'
       +       '<option value="Drafting Needed">Drafting Only</option>'
+      +       '<option value="Other compliance">Other Compliance Only</option>'
       +     '</select>'
+      +     '<button id="cmpl-add-btn" class="btn bp" style="padding:6px 12px;border-radius:6px;font-size:13px;cursor:pointer;">+ Add Compliance</button>'
       +     '<input id="cmpl-search" type="text" placeholder="Search case…" style="padding:6px 10px;border-radius:6px;border:1px solid #cbd5e0;font-size:13px;width:180px;" />'
       +   '</div>'
       + '</div>'
       + '<div id="cmpl-summary" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;"></div>'
-      + '<div id="cmpl-table-wrap" style="background:#fff;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,0.06);overflow:auto;"></div>';
+      + '<div id="cmpl-table-wrap" style="background:#fff;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,0.06);overflow:auto;"></div>'
+      /* [F2] Add Compliance modal */
+      + '<div id="cmpl-add-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:9999;align-items:center;justify-content:center;">'
+      +   '<div style="background:#fff;border-radius:10px;padding:20px;width:min(520px,92vw);max-height:88vh;overflow:auto;box-shadow:0 10px 40px rgba(0,0,0,0.25);">'
+      +     '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;"><h3 style="margin:0;font-size:17px;color:#1a2744;">+ Add Compliance to a Case</h3><button id="cmpl-add-close" style="border:none;background:transparent;font-size:22px;cursor:pointer;color:#718096;">×</button></div>'
+      +     '<div style="font-size:12px;color:#718096;margin-bottom:12px;">Tag any existing case as having a compliance item. Useful for "Collect TC", "Collect NSR", drafting tasks, etc.</div>'
+      +     '<label style="display:block;font-size:12px;font-weight:600;color:#2d3748;margin-bottom:4px;">Case</label>'
+      +     '<input id="cmpl-add-case-search" type="text" placeholder="Type party name, case no, CNR, or SN..." style="width:100%;padding:8px 10px;border-radius:6px;border:1px solid #cbd5e0;font-size:13px;margin-bottom:4px;" autocomplete="off" />'
+      +     '<div id="cmpl-add-case-results" style="max-height:160px;overflow-y:auto;border:1px solid #e2e5e9;border-radius:6px;margin-bottom:12px;display:none;background:#fff;"></div>'
+      +     '<div id="cmpl-add-selected" style="padding:8px 10px;background:#f0f7ff;border:1px solid #c5d9f1;border-radius:6px;margin-bottom:12px;display:none;font-size:13px;"></div>'
+      +     '<label style="display:block;font-size:12px;font-weight:600;color:#2d3748;margin-bottom:4px;">Compliance Type</label>'
+      +     '<select id="cmpl-add-type" style="width:100%;padding:8px 10px;border-radius:6px;border:1px solid #cbd5e0;font-size:13px;margin-bottom:12px;">'
+      +       '<option value="PF">PF</option>'
+      +       '<option value="Drafting Needed">Drafting Needed</option>'
+      +       '<option value="Other compliance">Other compliance</option>'
+      +     '</select>'
+      +     '<label style="display:block;font-size:12px;font-weight:600;color:#2d3748;margin-bottom:4px;">Sub-status</label>'
+      +     '<select id="cmpl-add-substatus" style="width:100%;padding:8px 10px;border-radius:6px;border:1px solid #cbd5e0;font-size:13px;margin-bottom:18px;"></select>'
+      +     '<div style="display:flex;gap:8px;justify-content:flex-end;">'
+      +       '<button id="cmpl-add-cancel" style="padding:8px 16px;border-radius:6px;border:1px solid #cbd5e0;background:#fff;cursor:pointer;font-size:13px;">Cancel</button>'
+      +       '<button id="cmpl-add-save" style="padding:8px 16px;border-radius:6px;border:none;background:#1a2744;color:#fff;cursor:pointer;font-size:13px;font-weight:600;">Save</button>'
+      +     '</div>'
+      +   '</div>'
+      + '</div>';
     var content = document.querySelector('.content') || document.querySelector('.main') || document.body;
     content.appendChild(pg);
 
@@ -1946,6 +1991,80 @@ document.addEventListener('DOMContentLoaded',function(){
     var s = pg.querySelector('#cmpl-search');
     if (f) f.onchange = renderComplianceSheet;
     if (s) s.oninput = renderComplianceSheet;
+
+    /* [F2] Add Compliance modal wiring */
+    var addBtn   = pg.querySelector('#cmpl-add-btn');
+    var modal    = pg.querySelector('#cmpl-add-modal');
+    var closeBtn = pg.querySelector('#cmpl-add-close');
+    var cancelBtn= pg.querySelector('#cmpl-add-cancel');
+    var saveBtn  = pg.querySelector('#cmpl-add-save');
+    var srch     = pg.querySelector('#cmpl-add-case-search');
+    var results  = pg.querySelector('#cmpl-add-case-results');
+    var picked   = pg.querySelector('#cmpl-add-selected');
+    var typeSel  = pg.querySelector('#cmpl-add-type');
+    var subSel   = pg.querySelector('#cmpl-add-substatus');
+    var selectedCase = null;
+
+    function refreshSubOptions(){
+      var def = SUB_STATUS[typeSel.value];
+      subSel.innerHTML = (def ? def.options : []).map(function(o){
+        return '<option value="' + o + '">' + o + '</option>';
+      }).join('');
+    }
+    function openModal(){
+      selectedCase = null;
+      srch.value = '';
+      results.innerHTML = ''; results.style.display = 'none';
+      picked.innerHTML = ''; picked.style.display = 'none';
+      typeSel.value = 'PF';
+      refreshSubOptions();
+      modal.style.display = 'flex';
+      setTimeout(function(){ srch.focus(); }, 50);
+    }
+    function closeModal(){ modal.style.display = 'none'; }
+    if (addBtn) addBtn.onclick = openModal;
+    if (closeBtn) closeBtn.onclick = closeModal;
+    if (cancelBtn) cancelBtn.onclick = closeModal;
+    modal.onclick = function(e){ if (e.target === modal) closeModal(); };
+    typeSel.onchange = refreshSubOptions;
+
+    srch.oninput = function(){
+      var q = this.value.toLowerCase().trim();
+      if (!q || !window.cases) { results.style.display = 'none'; return; }
+      var matches = window.cases.filter(function(c){
+        var hay = ((c.pn||'') + ' ' + (c.op||'') + ' ' + (c.cn||'') + ' ' + (c.crn||'') + ' ' + (c.sn||'')).toLowerCase();
+        return hay.indexOf(q) !== -1;
+      }).slice(0, 15);
+      if (!matches.length) { results.innerHTML = '<div style="padding:8px 10px;color:#718096;font-size:12px;">No matching case.</div>'; results.style.display = 'block'; return; }
+      results.innerHTML = matches.map(function(c){
+        var sub = escapeHtml(c.op || '') + (c.cn ? ' · ' + escapeHtml(c.cn) : '') + (c.crn ? ' · ' + escapeHtml(c.crn) : '');
+        return '<div class="cmpl-add-res" data-sn="' + c.sn + '" style="padding:8px 10px;cursor:pointer;border-bottom:1px solid #f0f0f0;font-size:13px;">' + (c.sn||'') + '. <b>' + escapeHtml(c.pn || '(untitled)') + '</b><div style="color:#718096;font-size:11px;margin-top:2px;">vs ' + sub + '</div></div>';
+      }).join('');
+      results.style.display = 'block';
+      results.querySelectorAll('.cmpl-add-res').forEach(function(div){
+        div.onclick = function(){
+          var sn = this.getAttribute('data-sn');
+          var c = window.cases.find(function(x){ return String(x.sn) === String(sn); });
+          if (!c) return;
+          selectedCase = c;
+          picked.innerHTML = '<b>Selected:</b> ' + (c.sn||'') + '. ' + escapeHtml(c.pn||'') + ' <span style="color:#718096">vs ' + escapeHtml(c.op||'') + '</span>';
+          picked.style.display = 'block';
+          results.style.display = 'none';
+          srch.value = '';
+        };
+      });
+    };
+
+    saveBtn.onclick = function(){
+      if (!selectedCase) { alert('Pick a case first.'); return; }
+      var t = typeSel.value;
+      var s = subSel.value;
+      /* set both the classification and the sub-status, using existing persist/log */
+      setComplianceType(selectedCase.sn, t);
+      setSubStatus(selectedCase.sn, s);
+      closeModal();
+      try { renderComplianceSheet(); } catch(_){}
+    };
   }
 
   function renderComplianceSheet(){
@@ -1997,28 +2116,34 @@ document.addEventListener('DOMContentLoaded',function(){
       wrap.innerHTML = '<div style="padding:30px;text-align:center;color:#718096;">No matching compliance items.</div>';
       return;
     }
+    /* [F1] Toggleable hearing-date column. Default = next, click to switch to last. */
+    if (typeof window._cmplDateMode === 'undefined') window._cmplDateMode = 'nd';
+    var dateMode = window._cmplDateMode;
+    var dateColLabel = dateMode === 'nd' ? 'Next Hearing' : 'Last Hearing';
+    var fmtDate = function(v){ if(!v) return '—'; try { var d = new Date(v); return isNaN(d) ? v : d.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}); } catch(e){ return v; } };
+
     var html = '<table style="width:100%;border-collapse:collapse;font-size:13px;">'
       + '<thead><tr style="background:#f0f2f5;color:#2d3748;text-align:left;">'
       +   '<th style="padding:10px 12px;font-weight:700;">Case</th>'
       +   '<th style="padding:10px 12px;font-weight:700;">Compliance Type</th>'
       +   '<th style="padding:10px 12px;font-weight:700;">Current Status</th>'
-      +   '<th style="padding:10px 12px;font-weight:700;">Last Updated</th>'
+      +   '<th id="cmpl-date-th" style="padding:10px 12px;font-weight:700;cursor:pointer;user-select:none;" title="Click to toggle between Next and Last Hearing">' + dateColLabel + ' 🔄</th>'
       +   '<th style="padding:10px 12px;font-weight:700;">Update</th>'
       + '</tr></thead><tbody>';
     rows.forEach(function(c){
       var def = SUB_STATUS[c[CLS_KEY]];
       var cur = c[def.key] || defaultStatusFor(c[CLS_KEY]);
       var color = def.colors[cur] || '#888';
-      var lastLog = (c[LOG_KEY] || []).filter(function(l){ return l.field === def.key; }).slice(-1)[0];
-      var when = lastLog ? new Date(lastLog.ts).toLocaleString() : '—';
+      var dateVal = dateMode === 'nd' ? c.nd : c.ld;
+      var dateCell = fmtDate(dateVal);
       var optsHtml = def.options.map(function(o){
         return '<option value="' + o + '"' + (o === cur ? ' selected' : '') + '>' + o + '</option>';
       }).join('');
       html += '<tr style="border-top:1px solid #e2e5e9;">'
-        +   '<td style="padding:10px 12px;font-weight:600;color:#1a2744;">' + (c.sn || '') + '. ' + escapeHtml(c.pn || c.op || '(untitled)') + '</td>'
-        +   '<td style="padding:10px 12px;">' + (function(){ var v = c[CLS_KEY] || ''; var opts = ['PF','Drafting Needed','No Compliance']; return '<select data-sn="' + c.sn + '" class="cmpl-type-sel" style="padding:4px 6px;border-radius:4px;border:1px solid #cbd5e0;font-size:12px;">' + opts.map(function(o){ return '<option value="' + o + '"' + (o === v ? ' selected' : '') + '>' + o + '</option>'; }).join('') + '</select>'; })() + '</td>'
+        +   '<td style="padding:10px 12px;font-weight:600;"><a href="#" data-sn="' + c.sn + '" class="cmpl-case-link" style="color:#1976d2;text-decoration:none;cursor:pointer;">' + (c.sn || '') + '. ' + escapeHtml(c.pn || c.op || '(untitled)') + '</a></td>'
+        +   '<td style="padding:10px 12px;">' + (function(){ var v = c[CLS_KEY] || ''; var opts = ['PF','Drafting Needed','Other compliance','No Compliance']; return '<select data-sn="' + c.sn + '" class="cmpl-type-sel" style="padding:4px 6px;border-radius:4px;border:1px solid #cbd5e0;font-size:12px;">' + opts.map(function(o){ return '<option value="' + o + '"' + (o === v ? ' selected' : '') + '>' + o + '</option>'; }).join('') + '</select>'; })() + '</td>'
         +   '<td style="padding:10px 12px;"><span style="background:' + color + ';color:#fff;padding:3px 9px;border-radius:10px;font-size:11px;font-weight:700;">' + cur + '</span></td>'
-        +   '<td style="padding:10px 12px;color:#718096;">' + when + '</td>'
+        +   '<td style="padding:10px 12px;color:#1a2744;font-weight:600;">' + dateCell + '</td>'
         +   '<td style="padding:10px 12px;"><select data-sn="' + c.sn + '" class="cmpl-row-sel" style="padding:4px 6px;border-radius:4px;border:1px solid #cbd5e0;font-size:12px;">' + optsHtml + '</select></td>'
         + '</tr>';
     });
@@ -2035,6 +2160,22 @@ document.addEventListener('DOMContentLoaded',function(){
         setComplianceType(this.getAttribute('data-sn'), this.value, this);
       };
     });
+    /* [F3] Clickable case name -> opens existing case-detail modal via opM(sn) */
+    wrap.querySelectorAll('.cmpl-case-link').forEach(function(a){
+      a.onclick = function(ev){
+        ev.preventDefault();
+        var sn = this.getAttribute('data-sn');
+        if (typeof window.opM === 'function') window.opM(sn);
+      };
+    });
+    /* [F1] Toggle Next/Last hearing-date column on header click */
+    var dateTh = document.getElementById('cmpl-date-th');
+    if (dateTh) {
+      dateTh.onclick = function(){
+        window._cmplDateMode = (window._cmplDateMode === 'nd') ? 'ld' : 'nd';
+        renderComplianceSheet();
+      };
+    }
   }
 
   function escapeHtml(s){
