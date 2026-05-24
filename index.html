@@ -390,7 +390,8 @@ if(window._cfCrf&&window._cfCrf.trim())fl=fl.filter(function(c){return(c.crt||""
 if(cs){var s=cs.toLowerCase();fl=fl.filter(function(c){return[c.pn,c.op,c.cn,c.crn,c.fn,c.jn,c.cr,c.st,c.ar,c.ct,c.nr,c.crt||""].join(" ").toLowerCase().indexOf(s)>=0})}
 // Apply sort
 var so=window._cfSo||"Serial No";
-if(so==="Next Date ↑"){fl.sort(function(a,b){var av=a.nd||"9999";var bv=b.nd||"9999";return av<bv?-1:av>bv?1:0})}
+if(so==="Serial No"){fl.sort(function(a,b){return (Number(a.sn)||0)-(Number(b.sn)||0)})}
+else if(so==="Next Date ↑"){fl.sort(function(a,b){var av=a.nd||"9999";var bv=b.nd||"9999";return av<bv?-1:av>bv?1:0})}
 else if(so==="Next Date ↓"){fl.sort(function(a,b){var av=a.nd||"";var bv=b.nd||"";return av>bv?-1:av<bv?1:0})}
 else if(so==="Party Name A→Z"){fl.sort(function(a,b){return(a.pn||"").localeCompare(b.pn||"")})}
 else if(so==="Party Name Z→A"){fl.sort(function(a,b){return(b.pn||"").localeCompare(a.pn||"")})}
@@ -904,6 +905,8 @@ listEl.style.display="block";
 function formatNCRecipients(c){try{var rs=c&&c.recipients;if(rs&&rs.length){var lines=rs.map(function(r){var t=(r.trk||'').trim();var s=(r.st||'').trim();var trkHtml=t?'<span style="font-family:monospace">'+(window.FX?FX(t):t)+'</span>':'<span style="color:var(--tx2)">no trk</span>';var stHtml=s?' <span style="font-size:10px;color:var(--tx2)">['+(window.FX?FX(s):s)+']</span>':'';return trkHtml+stHtml;});return lines.join('<br>');}var leg=(c&&c.trk)||'';return leg?(window.FX?FX(leg):leg):'\u2014';}catch(e){return '\u2014';}}function renderNotices(){
 var notices=(window.cases||[]).filter(function(c){return(c.ct||"").toUpperCase()==="NOTICE";});
 notices=notices.map(function(c){var e=window.caseEdits&&window.caseEdits[c.id]?window.caseEdits[c.id]:{};return Object.assign({},c,e);});
+/* [SORT] always order notices by sn so newer additions appear at the bottom predictably */
+notices.sort(function(a,b){return (Number(a.sn)||0)-(Number(b.sn)||0);});
 var badge=$("ntc-cnt");if(badge)badge.textContent=notices.length;
 var q=(document.getElementById("ntc-srch")||{value:""}).value.trim().toLowerCase();
 var sf=(document.getElementById("ntc-sf")||{value:"All Status"}).value;
