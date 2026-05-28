@@ -1202,12 +1202,34 @@ setInterval(chkN,30*60000);
         data._ts = nextTs;
       }
       const payload = Array.isArray(data) ? { _arr: data } : data;
+      /* [SAVE-GUARDRAIL] Hard refuse to save if the array shrank dramatically — kills the wipe-pattern bug class.
+         Tracks "last known good count" per key in localStorage. Compare new size to it. Block if new < 50%. */
+      try {
+        if (Array.isArray(data)) {
+          var _lkgKey = "_lkg_" + key;
+          var _lkg = Number(localStorage.getItem(_lkgKey) || 0);
+          var _newLen = data.length;
+          /* Block: previous count > 20 AND new is empty/tiny */
+          if (_lkg > 20 && _newLen === 0) {
+            console.error("[SAVE-GUARDRAIL] Refusing to save " + key + " — array would shrink from " + _lkg + " to 0. Likely bug. Cloud not touched.");
+            try { alert("⚠️ Refusing to save: the case list would drop from " + _lkg + " to 0 entries. This looks like a bug — your cloud data is safe and unchanged. Please refresh the page and try again. If this keeps happening, contact support."); } catch(_){}
+            return;
+          }
+          /* Block: previous count >= 50 AND new is < 50% of previous (e.g. 1000 → 400) */
+          if (_lkg >= 50 && _newLen < _lkg * 0.5) {
+            console.error("[SAVE-GUARDRAIL] Refusing to save " + key + " — array would shrink from " + _lkg + " to " + _newLen + " (>50% loss). Cloud not touched.");
+            try { var _yn = confirm("⚠️ The " + key + " list is about to shrink from " + _lkg + " entries to " + _newLen + " — a loss of more than 50%. This is unusual.\n\nClick OK only if you are deliberately deleting many cases at once. Click Cancel to abort the save (recommended)."); if (!_yn) return; } catch(_){ return; }
+          }
+        }
+      } catch(_){}
       var _sb=document.getElementById("fb-sync-bar");
       if(_sb){_sb.style.display="block";_sb.style.background="linear-gradient(90deg,#1a2744,#2c3e50)";_sb.innerHTML="&#9679; Saving&hellip;";}
       /* [FIX-RACE] mark write in flight so the live snapshot listener won't clobber our local copy mid-save */
       window._fbPending = (window._fbPending || 0) + 1;
       setDoc(DOCS[key], payload, { merge: true }).then(function(){
         window._fbPending = Math.max(0, (window._fbPending || 1) - 1);
+        /* [SAVE-GUARDRAIL] update last-known-good count on successful save */
+        try { if (Array.isArray(data)) localStorage.setItem("_lkg_" + key, String(data.length)); } catch(_){}
         var _sb2=document.getElementById("fb-sync-bar");
         if(_sb2){_sb2.style.background="linear-gradient(90deg,#1b5e20,#2e7d32)";_sb2.innerHTML="&#10003; Saved";setTimeout(function(){_sb2.style.display="none";},1200);}
       }).catch(function(e) {
@@ -1267,6 +1289,8 @@ setInterval(chkN,30*60000);
           parsed = Object.assign({}, local, data);
         }
         localStorage.setItem(key, JSON.stringify(parsed));
+        /* [SAVE-GUARDRAIL] seed last-known-good count from cloud snapshot so the guardrail has a baseline to compare against */
+        try { if (Array.isArray(parsed)) localStorage.setItem("_lkg_" + key, String(parsed.length)); } catch(_){}
         anyUpdate = true;
       } catch(e) { console.warn("fbLoad err for " + key, e.message); }
     }
