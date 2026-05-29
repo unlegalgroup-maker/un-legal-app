@@ -592,25 +592,36 @@ if(pwd!=="Parth@2026"){alert("\u274C Wrong password. You are not authorised to d
 var c=cases.find(function(x){return String(x.sn)===String(sn)});
 if(!c)return;
 if(!confirm("Are you sure you want to permanently delete case:\n"+c.sn+". "+c.pn+" vs "+c.op+"\n\nThis cannot be undone!"))return;
-// Remove from cases array
+/* [FULL-DELETE] route based on entry type AND cascade to all storage layers (legacy mega-docs + new per-doc collections) */
+var isNotice=(c.ct||'').toUpperCase()==='NOTICE';
+/* 1. Remove from in-memory cases array */
 var idx=cases.indexOf(c);
 if(idx>=0)cases.splice(idx,1);
-// Remove from newCases if it was a new case
-var nc=JSON.parse(localStorage.getItem("u4nc")||"[]");
-nc=nc.filter(function(x){return x.id!==c.id});
-localStorage.setItem("u4nc",JSON.stringify(nc));
+/* 2. Remove from in-memory newCases (legacy local for cases) */
+if(typeof newCases!=='undefined'){var ni2=newCases.findIndex(function(x){return x.id===c.id;});if(ni2>=0)newCases.splice(ni2,1);}
+/* 3. Remove from in-memory noticesArr (Option A local for notices) */
+if(typeof noticesArr!=='undefined'){var ni3=noticesArr.findIndex(function(x){return x.id===c.id;});if(ni3>=0)noticesArr.splice(ni3,1);}
+/* 4. Update localStorage u4nc (legacy mega-doc for cases) \u2014 filter out by id whether it was there or not */
+try{var lnc=JSON.parse(localStorage.getItem("u4nc")||"[]");lnc=lnc.filter(function(x){return x.id!==c.id;});localStorage.setItem("u4nc",JSON.stringify(lnc));}catch(_){}
 if(typeof fbSave==="function")fbSave("u4nc");
-// Remove any edits for this case
+/* 5. Update localStorage u4ntc (legacy mega-doc for notices) \u2014 same defensive filter */
+try{var lnt=JSON.parse(localStorage.getItem("u4ntc")||"[]");lnt=lnt.filter(function(x){return x.id!==c.id;});localStorage.setItem("u4ntc",JSON.stringify(lnt));}catch(_){}
+if(typeof fbSave==="function")fbSave("u4ntc");
+/* 6. Delete from NEW per-doc collections (both, since some entries might be in either) */
+if(typeof window.fbDeleteCase==="function")window.fbDeleteCase(c.id);
+if(typeof window.fbDeleteNotice==="function")window.fbDeleteNotice(c.id);
+/* 7. Remove caseEdits entry */
 if(caseEdits[c.id])delete caseEdits[c.id];
 localStorage.setItem("u4ce",JSON.stringify(caseEdits));
 if(typeof fbSave==="function")fbSave("u4ce");
-// Remove notes
+/* 8. Remove notes */
 if(window.caseNotes&&window.caseNotes[c.id])delete window.caseNotes[c.id];
 localStorage.setItem("u4notes",JSON.stringify(window.caseNotes||{}));
 if(typeof fbSave==="function")fbSave("u4notes");
 clM();
 renderDB();
 renderC();
+if(typeof renderNotices==="function")renderNotices();
 alert("\u2705 Case deleted successfully.");
 }
 function clM(){$("cm").classList.remove("sh");editMode=false}
@@ -1048,10 +1059,17 @@ if(nc.ct==='NOTICE'){
 alert("Case added! Total: "+cases.length);clearNCForm();renderNC();renderDB();renderC();
 }
 function clearNCForm(){["nc_pn","nc_op","nc_cn","nc_fn","nc_crn","nc_jn","nc_cr","nc_nd","nc_ld","nc_oa","nc_on","nc_no","nc_ar","nc_arn","nc_cc","nc_opa","nc_sta","nc_nop","nc_eop","nc_pa","nc_ia","nc_ta","nc_chq","nc_nr","nc_dln","nc_st","nc_cmp","nc_cs"].forEach(function(id){var el=$(id);if(el)el.value=""})}
-function delNC(i){if(!confirm("Remove?"))return;var nc=newCases[i];var idx=cases.findIndex(function(c){return c.id===nc.id});if(idx>=0)cases.splice(idx,1);newCases.splice(i,1);localStorage.setItem("u4nc",JSON.stringify(newCases));if(typeof fbSave==="function")fbSave("u4nc");
-/* [OPTION-C] delete the per-doc copy too */
-if(nc&&nc.id){if(typeof window.fbDeleteCase==="function")window.fbDeleteCase(nc.id);if(typeof window.fbDeleteNotice==="function")window.fbDeleteNotice(nc.id);}
-renderNC();renderDB();renderC()}
+function delNC(i){if(!confirm("Remove?"))return;var nc=newCases[i];if(!nc)return;
+/* [FULL-DELETE] cascade to all layers — same pattern as deleteCase() */
+var idx=cases.findIndex(function(c){return c.id===nc.id});if(idx>=0)cases.splice(idx,1);
+newCases.splice(i,1);
+try{localStorage.setItem("u4nc",JSON.stringify(newCases));}catch(_){}
+if(typeof fbSave==="function")fbSave("u4nc");
+/* Also clean noticesArr / u4ntc if entry was a notice */
+if(typeof noticesArr!=='undefined'){var nni=noticesArr.findIndex(function(x){return x.id===nc.id;});if(nni>=0){noticesArr.splice(nni,1);try{localStorage.setItem("u4ntc",JSON.stringify(noticesArr));}catch(_){}if(typeof fbSave==="function")fbSave("u4ntc");}}
+/* Delete from NEW per-doc collections */
+if(nc.id){if(typeof window.fbDeleteCase==="function")window.fbDeleteCase(nc.id);if(typeof window.fbDeleteNotice==="function")window.fbDeleteNotice(nc.id);}
+renderNC();renderDB();renderC();if(typeof renderNotices==="function")renderNotices();}
 
 // ===== SHARE & DOWNLOAD (FIXED) =====
 function renderShare(){
