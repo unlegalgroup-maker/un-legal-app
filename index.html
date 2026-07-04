@@ -592,21 +592,19 @@ if(pwd!=="Parth@2026"){alert("\u274C Wrong password. You are not authorised to d
 var c=cases.find(function(x){return String(x.sn)===String(sn)});
 if(!c)return;
 if(!confirm("Are you sure you want to permanently delete case:\n"+c.sn+". "+c.pn+" vs "+c.op+"\n\nThis cannot be undone!"))return;
-/* [FULL-DELETE] route based on entry type AND cascade to all storage layers (legacy mega-docs + new per-doc collections) */
+/* [PHASE-3] Delete only from per-doc collections. Legacy mega-doc cloud writes retired. */
 var isNotice=(c.ct||'').toUpperCase()==='NOTICE';
 /* 1. Remove from in-memory cases array */
 var idx=cases.indexOf(c);
 if(idx>=0)cases.splice(idx,1);
-/* 2. Remove from in-memory newCases (legacy local for cases) */
+/* 2. Remove from in-memory newCases (local mirror only) */
 if(typeof newCases!=='undefined'){var ni2=newCases.findIndex(function(x){return x.id===c.id;});if(ni2>=0)newCases.splice(ni2,1);}
-/* 3. Remove from in-memory noticesArr (Option A local for notices) */
+/* 3. Remove from in-memory noticesArr (local mirror only) */
 if(typeof noticesArr!=='undefined'){var ni3=noticesArr.findIndex(function(x){return x.id===c.id;});if(ni3>=0)noticesArr.splice(ni3,1);}
-/* 4. Update localStorage u4nc (legacy mega-doc for cases) \u2014 filter out by id whether it was there or not */
+/* 4. Sync localStorage u4nc (local cache) \u2014 defensive filter */
 try{var lnc=JSON.parse(localStorage.getItem("u4nc")||"[]");lnc=lnc.filter(function(x){return x.id!==c.id;});localStorage.setItem("u4nc",JSON.stringify(lnc));}catch(_){}
-if(typeof fbSave==="function")fbSave("u4nc");
-/* 5. Update localStorage u4ntc (legacy mega-doc for notices) \u2014 same defensive filter */
+/* 5. Sync localStorage u4ntc (local cache) \u2014 same defensive filter */
 try{var lnt=JSON.parse(localStorage.getItem("u4ntc")||"[]");lnt=lnt.filter(function(x){return x.id!==c.id;});localStorage.setItem("u4ntc",JSON.stringify(lnt));}catch(_){}
-if(typeof fbSave==="function")fbSave("u4ntc");
 /* 6. Delete from NEW per-doc collections (both, since some entries might be in either) */
 if(typeof window.fbDeleteCase==="function")window.fbDeleteCase(c.id);
 if(typeof window.fbDeleteNotice==="function")window.fbDeleteNotice(c.id);
@@ -1047,27 +1045,22 @@ try{var _rl=document.getElementById('ncRecipientsList');if(_rl&&nc.ct==='NOTICE'
 cases.push(nc);
 if(nc.ct==='NOTICE'){
   noticesArr.push(nc);try{localStorage.setItem("u4ntc",JSON.stringify(noticesArr));}catch(e){}
-  if(typeof fbSave==="function")fbSave("u4ntc"); /* legacy mega-doc write — kept as safety net */
-  /* [OPTION-C] primary write: per-notice document */
+  /* [PHASE-3] Legacy mega-doc write retired. Per-doc collection is now sole cloud source. */
   if(typeof window.fbSaveNotice==="function")window.fbSaveNotice(nc.id,nc);
 }else{
   newCases.push(nc);try{localStorage.setItem("u4nc",JSON.stringify(newCases));}catch(e){}
-  if(typeof fbSave==="function")fbSave("u4nc"); /* legacy mega-doc write — kept as safety net */
-  /* [OPTION-C] primary write: per-case document */
+  /* [PHASE-3] Legacy mega-doc write retired. */
   if(typeof window.fbSaveCase==="function")window.fbSaveCase(nc.id,nc);
 }
 alert("Case added! Total: "+cases.length);clearNCForm();renderNC();renderDB();renderC();
 }
 function clearNCForm(){["nc_pn","nc_op","nc_cn","nc_fn","nc_crn","nc_jn","nc_cr","nc_nd","nc_ld","nc_oa","nc_on","nc_no","nc_ar","nc_arn","nc_cc","nc_opa","nc_sta","nc_nop","nc_eop","nc_pa","nc_ia","nc_ta","nc_chq","nc_nr","nc_dln","nc_st","nc_cmp","nc_cs"].forEach(function(id){var el=$(id);if(el)el.value=""})}
 function delNC(i){if(!confirm("Remove?"))return;var nc=newCases[i];if(!nc)return;
-/* [FULL-DELETE] cascade to all layers — same pattern as deleteCase() */
+/* [PHASE-3] Delete only from per-doc collections. Legacy mega-doc writes retired. */
 var idx=cases.findIndex(function(c){return c.id===nc.id});if(idx>=0)cases.splice(idx,1);
 newCases.splice(i,1);
 try{localStorage.setItem("u4nc",JSON.stringify(newCases));}catch(_){}
-if(typeof fbSave==="function")fbSave("u4nc");
-/* Also clean noticesArr / u4ntc if entry was a notice */
-if(typeof noticesArr!=='undefined'){var nni=noticesArr.findIndex(function(x){return x.id===nc.id;});if(nni>=0){noticesArr.splice(nni,1);try{localStorage.setItem("u4ntc",JSON.stringify(noticesArr));}catch(_){}if(typeof fbSave==="function")fbSave("u4ntc");}}
-/* Delete from NEW per-doc collections */
+if(typeof noticesArr!=='undefined'){var nni=noticesArr.findIndex(function(x){return x.id===nc.id;});if(nni>=0){noticesArr.splice(nni,1);try{localStorage.setItem("u4ntc",JSON.stringify(noticesArr));}catch(_){}}}
 if(nc.id){if(typeof window.fbDeleteCase==="function")window.fbDeleteCase(nc.id);if(typeof window.fbDeleteNotice==="function")window.fbDeleteNotice(nc.id);}
 renderNC();renderDB();renderC();if(typeof renderNotices==="function")renderNotices();}
 
@@ -1432,42 +1425,12 @@ setInterval(chkN,30*60000);
       if (typeof renderND === "function") renderND();
     }, function(err) { console.warn("notices/ snapshot error:", err.message); });
 
-    /* [OPTION-A] Listen on sync/notices and merge into window.cases (additive, dedupe by id) */
-    onSnapshot(DOCS.u4ntc, function(snap) {
-      if (!snap.exists()) return;
-      let arr = (snap.data()._arr) || [];
-      if (!Array.isArray(arr) && arr && typeof arr === "object") { var ks = Object.keys(arr).filter(function(k){return k!=='_ts'&&k!=='_arr';}); arr = ks.map(function(k){return arr[k];}); }
-      if (!Array.isArray(arr)) arr = [];
-      localStorage.setItem("u4ntc", JSON.stringify(arr));
-      if (typeof window.cases !== "undefined" && !(window._fbPending && window._fbPending > 0)) {
-        var cloudIds = new Set(arr.map(function(x){return x.id;}));
-        /* remove window.cases entries whose id is in cloud notices (will re-add fresh below) */
-        window.cases = window.cases.filter(function(c){return !(c && cloudIds.has(c.id));});
-        arr.forEach(function(n){ window.cases.push(n); });
-        if (typeof renderDB === "function") renderDB();
-        if (typeof renderC === "function") renderC();
-        if (typeof renderNotices === "function") renderNotices();
-      }
-    });
-    onSnapshot(DOCS.u4nc, function(snap) {
-      if (!snap.exists()) return;
-      let arr = (snap.data()._arr) || [];
-      /* [FIX-ARRAY] Firestore may return an object-with-numeric-keys; coerce to array */
-      if (!Array.isArray(arr) && arr && typeof arr === "object") { var ks = Object.keys(arr).filter(function(k){return !isNaN(parseInt(k));}).sort(function(a,b){return parseInt(a)-parseInt(b);}); arr = ks.map(function(k){return arr[k];}); }
-      if (!Array.isArray(arr)) arr = [];
-      localStorage.setItem("u4nc", JSON.stringify(arr));
-      // Merge into window.cases so all users see new cases immediately
-      if (typeof window.cases !== "undefined" && typeof window.D !== "undefined") {
-        const ncIds = new Set(arr.map(function(x) { return x.id; }));
-        /* [FIX-MERGE] Skip the wipe if a local save is in flight, and never wipe NC entries the cloud doesn't have yet */
-        if (!window._fbPending || window._fbPending <= 0) {
-          window.cases = window.cases.filter(function(c) { return !String(c.id).startsWith("NC") || !ncIds.has(c.id); });
-          arr.forEach(function(nc) { if (!window.cases.find(function(c) { return c.id === nc.id; })) window.cases.push(nc); });
-        }
-        if (typeof renderDB === "function") renderDB();
-        if (typeof renderC === "function") renderC();
-      }
-    });
+    /* [PHASE-3] Legacy sync/newCases and sync/notices snapshot listeners retired.
+       They were the source of the "vanishing edits" bug: whenever the mega-doc updated,
+       these listeners would overwrite window.cases with stale legacy data, wiping user
+       edits. The new cases/ and notices/ collection listeners (above) are now the sole
+       cloud→app sync path and correctly respect caseEdits + dateUpdates overrides via
+       _applyCloudDoc. Legacy mega-docs remain readable for cold-start fbLoadAll fallback. */
     onSnapshot(DOCS.u4ce, function(snap) {
       if (!snap.exists()) return;
       const cloud = snap.data() || {};
@@ -2391,7 +2354,7 @@ document.addEventListener('DOMContentLoaded',function(){
   }
 })();
 </script>
-<!-- END: Compliance Sub-Status Stage 1 --><script src="edit-nc.js?v=2"></script><script>(function(){if(!('serviceWorker' in navigator))return;window.addEventListener('load',function(){navigator.serviceWorker.register('./service-worker.js').then(function(reg){reg.addEventListener('updatefound',function(){var nw=reg.installing;if(!nw)return;nw.addEventListener('statechange',function(){if(nw.state==='installed'&&navigator.serviceWorker.controller){showSWUpdateBanner(reg);}});});}).catch(function(e){console.warn('SW registration failed:',e);});});function showSWUpdateBanner(reg){if(document.getElementById('swUpdBanner'))return;var b=document.createElement('div');b.id='swUpdBanner';b.style.cssText='position:fixed;top:0;left:0;right:0;background:#0a7e23;color:#fff;padding:10px;text-align:center;z-index:99999;cursor:pointer;font-weight:600;font-size:13px';b.innerHTML='\ud83d\udd04 New version available \u2014 tap to refresh';b.onclick=function(){if(reg.waiting)reg.waiting.postMessage('SKIP_WAITING');setTimeout(function(){location.reload();},300);};document.body.appendChild(b);}window.showSWUpdateBanner=showSWUpdateBanner;window.__unregisterSW=function(){if(!navigator.serviceWorker)return;navigator.serviceWorker.getRegistrations().then(function(rs){rs.forEach(function(r){r.unregister();});if(window.caches)caches.keys().then(function(keys){keys.forEach(function(k){caches.delete(k);});});console.log('SW unregistered. Reload to clear cache.');});};})();</script><script>(function(){var SYNC_KEY='u4_lastSync';var disabled=false;window.__disableOfflineMode=function(){disabled=true;var b1=document.getElementById('offlineBanner');if(b1)b1.remove();document.querySelectorAll('.ni').forEach(function(a){a.style.opacity='';a.style.pointerEvents='';});console.log('Offline mode disabled. Reload to re-enable.');};function fmtSync(ts){if(!ts)return'never';var d=new Date(parseInt(ts,10));if(isNaN(d.getTime()))return'never';var now=new Date();var same=d.toDateString()===now.toDateString();var hh=d.getHours(),mm=d.getMinutes();var pad=function(n){return n<10?'0'+n:n};var t=pad(hh)+':'+pad(mm);if(same)return'today '+t;var diff=Math.floor((now-d)/86400000);if(diff===1)return'yesterday '+t;if(diff<7)return diff+' days ago';return d.getDate()+'-'+['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()]+' '+t;}function markSynced(){try{localStorage.setItem(SYNC_KEY,String(Date.now()));}catch(_){}}function isOffline(){return navigator.onLine===false;}function showOfflineBanner(){if(disabled)return;if(document.getElementById('offlineBanner'))return;var b=document.createElement('div');b.id='offlineBanner';var ts=localStorage.getItem(SYNC_KEY);b.style.cssText='position:fixed;top:0;left:0;right:0;background:#c9831c;color:#fff;padding:8px 12px;text-align:center;z-index:99998;font-weight:600;font-size:12px;box-shadow:0 2px 6px rgba(0,0,0,.2)';b.innerHTML='\ud83d\udce1 Offline mode \u2014 Cause List only \u00b7 Last synced '+fmtSync(ts);document.body.appendChild(b);document.body.style.paddingTop='32px';}function hideOfflineBanner(){var b=document.getElementById('offlineBanner');if(b){b.remove();document.body.style.paddingTop='';}}function dimSidebar(){if(disabled)return;document.querySelectorAll('.sb a.ni').forEach(function(a){var txt=(a.textContent||'').toLowerCase();if(txt.indexOf('cause list')!==-1)return;a.style.opacity='0.4';a.setAttribute('data-offline-blocked','1');});}function undimSidebar(){document.querySelectorAll('.sb a.ni[data-offline-blocked]').forEach(function(a){a.style.opacity='';a.removeAttribute('data-offline-blocked');});}function blockNonClListClick(e){if(disabled)return;if(!isOffline())return;var a=e.target.closest('a.ni');if(!a)return;var txt=(a.textContent||'').toLowerCase();if(txt.indexOf('cause list')!==-1)return;e.preventDefault();e.stopPropagation();alert('You are offline. Only Cause List works without internet. Reconnect to use this page.');}function applyOfflineState(){if(isOffline()){showOfflineBanner();dimSidebar();if(typeof go==='function'){var cur=document.querySelector('.pg.a');if(cur&&cur.id!=='pg-cl'){setTimeout(function(){go('cl');},0);}}}else{hideOfflineBanner();undimSidebar();markSynced();}}window.addEventListener('online',applyOfflineState);window.addEventListener('offline',applyOfflineState);document.addEventListener('click',blockNonClListClick,true);if(document.readyState==='complete'||document.readyState==='interactive'){setTimeout(applyOfflineState,500);}else{window.addEventListener('load',function(){setTimeout(applyOfflineState,500);});}})();</script>
+<!-- END: Compliance Sub-Status Stage 1 --><script src="edit-nc.js?v=3"></script><script>(function(){if(!('serviceWorker' in navigator))return;window.addEventListener('load',function(){navigator.serviceWorker.register('./service-worker.js').then(function(reg){reg.addEventListener('updatefound',function(){var nw=reg.installing;if(!nw)return;nw.addEventListener('statechange',function(){if(nw.state==='installed'&&navigator.serviceWorker.controller){showSWUpdateBanner(reg);}});});}).catch(function(e){console.warn('SW registration failed:',e);});});function showSWUpdateBanner(reg){if(document.getElementById('swUpdBanner'))return;var b=document.createElement('div');b.id='swUpdBanner';b.style.cssText='position:fixed;top:0;left:0;right:0;background:#0a7e23;color:#fff;padding:10px;text-align:center;z-index:99999;cursor:pointer;font-weight:600;font-size:13px';b.innerHTML='\ud83d\udd04 New version available \u2014 tap to refresh';b.onclick=function(){if(reg.waiting)reg.waiting.postMessage('SKIP_WAITING');setTimeout(function(){location.reload();},300);};document.body.appendChild(b);}window.showSWUpdateBanner=showSWUpdateBanner;window.__unregisterSW=function(){if(!navigator.serviceWorker)return;navigator.serviceWorker.getRegistrations().then(function(rs){rs.forEach(function(r){r.unregister();});if(window.caches)caches.keys().then(function(keys){keys.forEach(function(k){caches.delete(k);});});console.log('SW unregistered. Reload to clear cache.');});};})();</script><script>(function(){var SYNC_KEY='u4_lastSync';var disabled=false;window.__disableOfflineMode=function(){disabled=true;var b1=document.getElementById('offlineBanner');if(b1)b1.remove();document.querySelectorAll('.ni').forEach(function(a){a.style.opacity='';a.style.pointerEvents='';});console.log('Offline mode disabled. Reload to re-enable.');};function fmtSync(ts){if(!ts)return'never';var d=new Date(parseInt(ts,10));if(isNaN(d.getTime()))return'never';var now=new Date();var same=d.toDateString()===now.toDateString();var hh=d.getHours(),mm=d.getMinutes();var pad=function(n){return n<10?'0'+n:n};var t=pad(hh)+':'+pad(mm);if(same)return'today '+t;var diff=Math.floor((now-d)/86400000);if(diff===1)return'yesterday '+t;if(diff<7)return diff+' days ago';return d.getDate()+'-'+['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()]+' '+t;}function markSynced(){try{localStorage.setItem(SYNC_KEY,String(Date.now()));}catch(_){}}function isOffline(){return navigator.onLine===false;}function showOfflineBanner(){if(disabled)return;if(document.getElementById('offlineBanner'))return;var b=document.createElement('div');b.id='offlineBanner';var ts=localStorage.getItem(SYNC_KEY);b.style.cssText='position:fixed;top:0;left:0;right:0;background:#c9831c;color:#fff;padding:8px 12px;text-align:center;z-index:99998;font-weight:600;font-size:12px;box-shadow:0 2px 6px rgba(0,0,0,.2)';b.innerHTML='\ud83d\udce1 Offline mode \u2014 Cause List only \u00b7 Last synced '+fmtSync(ts);document.body.appendChild(b);document.body.style.paddingTop='32px';}function hideOfflineBanner(){var b=document.getElementById('offlineBanner');if(b){b.remove();document.body.style.paddingTop='';}}function dimSidebar(){if(disabled)return;document.querySelectorAll('.sb a.ni').forEach(function(a){var txt=(a.textContent||'').toLowerCase();if(txt.indexOf('cause list')!==-1)return;a.style.opacity='0.4';a.setAttribute('data-offline-blocked','1');});}function undimSidebar(){document.querySelectorAll('.sb a.ni[data-offline-blocked]').forEach(function(a){a.style.opacity='';a.removeAttribute('data-offline-blocked');});}function blockNonClListClick(e){if(disabled)return;if(!isOffline())return;var a=e.target.closest('a.ni');if(!a)return;var txt=(a.textContent||'').toLowerCase();if(txt.indexOf('cause list')!==-1)return;e.preventDefault();e.stopPropagation();alert('You are offline. Only Cause List works without internet. Reconnect to use this page.');}function applyOfflineState(){if(isOffline()){showOfflineBanner();dimSidebar();if(typeof go==='function'){var cur=document.querySelector('.pg.a');if(cur&&cur.id!=='pg-cl'){setTimeout(function(){go('cl');},0);}}}else{hideOfflineBanner();undimSidebar();markSynced();}}window.addEventListener('online',applyOfflineState);window.addEventListener('offline',applyOfflineState);document.addEventListener('click',blockNonClListClick,true);if(document.readyState==='complete'||document.readyState==='interactive'){setTimeout(applyOfflineState,500);}else{window.addEventListener('load',function(){setTimeout(applyOfflineState,500);});}})();</script>
 
 </body>
 </html>
