@@ -1841,7 +1841,7 @@ document.addEventListener('DOMContentLoaded',function(){
   // Stage 1: Compliance Classification Enhancement
   //
   // Adds editable sub-statuses under PF and Drafting Needed:
-  //   PF        -> To be Filed | Filed | To be Collected | Done
+  //   PF        -> To be Filed | Prepared | To be Collected | Done
   //   Drafting  -> To be Drafted | Done
   //
   // Stored on each case as:
@@ -1868,10 +1868,10 @@ document.addEventListener('DOMContentLoaded',function(){
     'PF': {
       key: 'pfst',
       label: 'PF Status',
-      options: ['To be Filed', 'Filed', 'To be Collected', 'Done'],
+      options: ['To be Filed', 'Prepared', 'To be Collected', 'Done'],
       colors: {
         'To be Filed':     '#e53e3e',
-        'Filed':           '#dd6b20',
+        'Prepared':        '#dd6b20',
         'To be Collected': '#3182ce',
         'Done':            '#38a169'
       }
