@@ -1413,6 +1413,13 @@ setInterval(chkN,30*60000);
           _applyCloudDoc(data);
         }
       });
+      /* [OFFLINE-FIX v21 2026-09-14] Persist non-notice cases to localStorage u4nc.
+         Post-Phase-3, cases come from per-doc collection only; without this persist,
+         offline mode has no data → Cause List renders empty when offline. */
+      try {
+        var _off_nc = (window.cases||[]).filter(function(c){return typeof __isValidCase==='function' ? __isValidCase(c) : (c&&c.id); }).filter(function(c){return (c.ct||'').toUpperCase()!=='NOTICE';});
+        localStorage.setItem('u4nc', JSON.stringify(_off_nc));
+      } catch(_){}
       if (typeof renderDB === "function") renderDB();
       if (typeof renderC === "function") renderC();
       if (typeof renderND === "function") renderND();
@@ -1430,6 +1437,11 @@ setInterval(chkN,30*60000);
           _applyCloudDoc(data);
         }
       });
+      /* [OFFLINE-FIX v21 2026-09-14] Persist notices to localStorage u4ntc for offline access */
+      try {
+        var _off_ntc = (window.cases||[]).filter(function(c){return typeof __isValidCase==='function' ? __isValidCase(c) : (c&&c.id); }).filter(function(c){return (c.ct||'').toUpperCase()==='NOTICE';});
+        localStorage.setItem('u4ntc', JSON.stringify(_off_ntc));
+      } catch(_){}
       if (typeof renderDB === "function") renderDB();
       if (typeof renderC === "function") renderC();
       if (typeof renderNotices === "function") renderNotices();
