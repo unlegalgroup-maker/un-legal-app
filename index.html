@@ -1039,11 +1039,36 @@ if(cnrVal){var dupCNR=cases.find(function(c){return(c.crn||"").trim().toLowerCas
 var maxNcNum=0;
 function _scanNc(c){var m=c&&c.id?/^NC(\d+)$/.exec(c.id):null;if(m){var n=+m[1];if(n>maxNcNum)maxNcNum=n;}}
 cases.forEach(_scanNc);newCases.forEach(_scanNc);
-var maxSn=0;cases.forEach(function(c){var n=Number(c&&c.sn);if(Number.isFinite(n)&&n>maxSn)maxSn=n;});
-var nextNum=maxNcNum+1, nextSN=maxSn+1;
-/* Collision guard: keep incrementing until the candidate is truly unique. Belt-and-suspenders. */
+/* [FIX v22 2026-09-17] Compute sn based on entry type. Notices use N-prefix
+   (N1, N2, ...) per the 2026-09-06 renumbering, so a new notice must be
+   assigned from the max N-number, not from the max numeric sn. Case-type
+   entries continue to use the max numeric sn. */
+var _newCt = ($("nc_ct").value || '').toUpperCase();
+var _isNotice = _newCt === 'NOTICE';
+var maxSn=0, maxN=0;
+cases.forEach(function(c){
+  if (!c) return;
+  var isCNotice = (c.ct||'').toUpperCase() === 'NOTICE';
+  if (isCNotice) {
+    var _mN = /^N(\d+)$/.exec(String(c.sn||''));
+    if (_mN) { var _nN = +_mN[1]; if (_nN > maxN) maxN = _nN; }
+  } else {
+    var _nS = Number(c.sn);
+    if (Number.isFinite(_nS) && _nS > maxSn) maxSn = _nS;
+  }
+});
+var nextNum=maxNcNum+1;
+var nextSN = _isNotice ? ('N' + (maxN + 1)) : (maxSn + 1);
+/* Collision guard: keep incrementing until the candidate is truly unique. */
 while(cases.find(function(c){return c&&c.id==="NC"+String(nextNum).padStart(4,"0");})||newCases.find(function(c){return c&&c.id==="NC"+String(nextNum).padStart(4,"0");})){nextNum++;}
-while(cases.find(function(c){return c&&Number(c.sn)===nextSN;})){nextSN++;}
+if (_isNotice) {
+  while(cases.find(function(c){return c && String(c.sn) === nextSN;})){
+    var _nParse = Number(String(nextSN).replace(/^N/, ''));
+    nextSN = 'N' + (_nParse + 1);
+  }
+} else {
+  while(cases.find(function(c){return c && Number(c.sn) === nextSN;})){nextSN++;}
+}
 var nextId="NC"+String(nextNum).padStart(4,"0");
 if(window._fbPending&&window._fbPending>0){var _yn=confirm("A previous save is still uploading. Saving now risks duplicate IDs.\n\nClick OK to wait and try again, or Cancel to save anyway (not recommended).");if(_yn)return;}
 var nc={id:nextId,sn:nextSN,cn:$("nc_cn").value.trim(),pn:pn,pr:$("nc_pr").value,oa:$("nc_oa").value.trim(),on:$("nc_on").value.trim(),no:$("nc_no").value.trim(),ar:$("nc_ar").value.trim(),arn:$("nc_arn").value.trim(),cc:$("nc_cc").value.trim(),op:op,opa:$("nc_opa").value.trim(),sta:$("nc_sta").value.trim(),nop:$("nc_nop").value.trim(),eop:$("nc_eop").value.trim(),pa:parseFloat($("nc_pa").value)||0,ia:parseFloat($("nc_ia").value)||0,ta:parseFloat($("nc_ta").value)||0,ra:0,chq:$("nc_chq").value.trim(),ct:$("nc_ct").value,fn:$("nc_fn").value.trim(),crn:$("nc_crn").value.trim(),jn:$("nc_jn").value.trim(),cr:$("nc_cr").value.trim(),crt:$("nc_crt").value.trim(),ld:$("nc_ld").value||"",nd:$("nc_nd").value||"",nr:$("nc_nr").value.trim(),dln:$("nc_dln").value||"",spd:$("nc_spd").value||"",trk:$("nc_trk").value.trim(),wad:$("nc_wad").value||"",emd:$("nc_emd").value||"",st:(typeof normalizeStatus==="function"?normalizeStatus($("nc_st").value):($("nc_st").value.trim()||"Fresh Case")),cmp:$("nc_cmp").value.trim(),dcmp:"",cs:$("nc_cs").value.trim()};
