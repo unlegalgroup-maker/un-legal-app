@@ -380,7 +380,8 @@ function sendWAW(n){var ph=n===1?PH1:PH2;window.open("https://wa.me/91"+ph+"?tex
 function renderC(){
 var _ntcB=$("ntc-cnt");if(_ntcB&&window.cases)_ntcB.textContent=(window.cases).filter(function(c){return(c.ct||"").toUpperCase()==="NOTICE";}).length;var _acB=$("ac-cnt");if(_acB&&window.cases){var _ntcCount=window.cases.filter(function(c){return(c.ct||"").toUpperCase()==="NOTICE";}).length;_acB.textContent=(window._cfIncNtc?window.cases.length:(window.cases.length-_ntcCount));}
 var ctOpts=["All Types","138 NI ACT","CIVIL","CRIMINAL","COMMERCIAL SUIT","ARBITRATION","CONSUMER","FAMILY","LABOUR","RERA","NCLT","NOTICE","EXECUTION","TRANSFER CERTIFICATE","PRE-MEDIATION APPLICATION","TM HEARING","OTHER"];
-var stOpts=["All Status","FRESH MATTER","IN PROGRESS","DISPOSED","STAYED","PART HEARD","PUT UP FOR ARGUMENTS","PUT UP FOR FINAL ARGUMENTS","ADJOURNED","SETTLED","WARRANTS","ORDERS/JUDGMENT","WITHDRAWN/DISPOSED OFF","DECREED"];
+/* [v23 2026-09-23] Filter dropdown now derived from STATUS_OPTIONS so it stays in sync with the Status dropdown. Substring-match logic below still lets "Reserved" partially-match "Reserved for Orders/Judgement/No Date/To withdraw", etc. */
+var stOpts=["All Status"].concat(STATUS_OPTIONS);
 var h='<div class="tl" style="flex-wrap:wrap;gap:8px">';
 h+='<input type="text" class="si" style="flex:1;min-width:200px" id="csr" placeholder="Search name, CNR, case no, judge..." oninput="cs=this.value;cp=1;document._csrFocus=true;document._csrVal=this.value;document._csrPos=this.selectionStart;renderC()">';
 h+='<select id="cf_ct" style="padding:8px 12px;border-radius:8px;border:1px solid var(--bd);background:var(--wh);color:var(--tx);font-size:12px;cursor:pointer" onchange="window._cfCt=this.value;cp=1;renderC()">';
