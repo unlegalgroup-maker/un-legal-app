@@ -1,6 +1,6 @@
 // service-worker.js — Stage C1 offline support
 // SAFETY: This file does NOT read or modify localStorage/Firestore. It only caches static assets (index.html, edit-nc.js) for offline use.
-const VERSION = 'v22-2026-09-17';
+const VERSION = 'v23-2026-09-23';
 const CACHE_NAME = 'unlegal-app-' + VERSION;
 const ASSETS = [ './', './index.html', './edit-nc.js?v=3' ];
 
